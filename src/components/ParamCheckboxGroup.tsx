@@ -8,7 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import type { ParamDef } from "../lib/paramCatalog";
+import type { ParamDef } from "../types";
 
 interface Props {
   title: string;

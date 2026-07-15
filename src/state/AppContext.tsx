@@ -10,15 +10,25 @@ import type {
   AppState,
   CustomKeyValue,
   Distro,
+  DistroStatus,
   ParamDef,
   ParamFamilyKey,
   ParamsCatalog,
   RegionDef,
   Role,
   Template,
+  TranscodePreset,
+  TranscodingConfig,
 } from "../types";
 import { seedRegions, seedTemplates } from "./seedData";
 import { SEED_PARAMS_CATALOG } from "../lib/paramCatalog";
+import { DEFAULT_DISTRO_STATUS } from "../lib/distroStatus";
+import {
+  DEFAULT_TRANSCODING,
+  SEED_TRANSCODE_PRESETS,
+  ensureTranscoding,
+  ensureTranscodePresets,
+} from "../lib/transcodePresets";
 
 const STORAGE_KEY = "radius.adtags.v1";
 
@@ -29,6 +39,8 @@ const initialState: AppState = {
   nextDistributionId: 12100,
   paramsCatalog: SEED_PARAMS_CATALOG,
   regions: seedRegions,
+  transcoding: DEFAULT_TRANSCODING,
+  transcodePresets: SEED_TRANSCODE_PRESETS,
 };
 
 type Action =
@@ -37,9 +49,16 @@ type Action =
   | { type: "addDistro"; distro: Distro }
   | { type: "updateDistro"; distro: Distro }
   | { type: "removeDistro"; id: string }
+  | { type: "setDistroStatus"; id: string; status: DistroStatus }
+  | { type: "setAllDistrosStatus"; status: DistroStatus }
+  | { type: "setTranscoding"; config: TranscodingConfig }
+  | { type: "addTranscodePreset"; preset: TranscodePreset }
+  | { type: "updateTranscodePreset"; preset: TranscodePreset }
+  | { type: "deleteTranscodePreset"; id: string }
   | { type: "addTemplate"; template: Template }
   | { type: "updateTemplate"; template: Template }
   | { type: "deleteTemplates"; ids: string[] }
+  | { type: "setTemplateDisabled"; id: string; disabled: boolean }
   | { type: "addParam"; family: ParamFamilyKey; param: ParamDef }
   | { type: "updateParam"; family: ParamFamilyKey; param: ParamDef }
   | { type: "deleteParam"; family: ParamFamilyKey; paramId: string }
@@ -74,6 +93,39 @@ const reducer = (state: AppState, action: Action): AppState => {
         ...state,
         distros: state.distros.filter((d) => d.id !== action.id),
       };
+    case "setDistroStatus":
+      return {
+        ...state,
+        distros: state.distros.map((d) =>
+          d.id === action.id ? { ...d, status: action.status } : d,
+        ),
+      };
+    case "setAllDistrosStatus":
+      return {
+        ...state,
+        distros: state.distros.map((d) => ({ ...d, status: action.status })),
+      };
+    case "setTranscoding":
+      return { ...state, transcoding: action.config };
+    case "addTranscodePreset":
+      return {
+        ...state,
+        transcodePresets: [...state.transcodePresets, action.preset],
+      };
+    case "updateTranscodePreset":
+      return {
+        ...state,
+        transcodePresets: state.transcodePresets.map((p) =>
+          p.id === action.preset.id ? action.preset : p,
+        ),
+      };
+    case "deleteTranscodePreset":
+      return {
+        ...state,
+        transcodePresets: state.transcodePresets.filter(
+          (p) => p.id !== action.id,
+        ),
+      };
     case "addTemplate":
       return { ...state, templates: [...state.templates, action.template] };
     case "updateTemplate":
@@ -90,6 +142,13 @@ const reducer = (state: AppState, action: Action): AppState => {
         templates: state.templates.filter((t) => !idSet.has(t.id)),
       };
     }
+    case "setTemplateDisabled":
+      return {
+        ...state,
+        templates: state.templates.map((t) =>
+          t.id === action.id ? { ...t, disabled: action.disabled } : t,
+        ),
+      };
     case "addParam":
       return {
         ...state,
@@ -146,9 +205,16 @@ interface AppContextValue {
   addDistro: (distro: Distro) => void;
   updateDistro: (distro: Distro) => void;
   removeDistro: (id: string) => void;
+  setDistroStatus: (id: string, status: DistroStatus) => void;
+  setAllDistrosStatus: (status: DistroStatus) => void;
+  setTranscoding: (config: TranscodingConfig) => void;
+  addTranscodePreset: (preset: TranscodePreset) => void;
+  updateTranscodePreset: (preset: TranscodePreset) => void;
+  deleteTranscodePreset: (id: string) => void;
   addTemplate: (template: Template) => void;
   updateTemplate: (template: Template) => void;
   deleteTemplates: (ids: string[]) => void;
+  setTemplateDisabled: (id: string, disabled: boolean) => void;
   addParam: (family: ParamFamilyKey, param: ParamDef) => void;
   updateParam: (family: ParamFamilyKey, param: ParamDef) => void;
   deleteParam: (family: ParamFamilyKey, paramId: string) => void;
@@ -181,6 +247,20 @@ const migrateCustomFields = <T extends { customKeyValues: CustomKeyValue[] }>(
       ...legacyMacros.map((m) => ({ id: m.id, key: m.macro, value: m.token })),
     ],
   };
+};
+
+/**
+ * Distros persisted before the status column existed have no `status` — treat
+ * them as Live, matching the default for newly-created distros. The `cold`
+ * status was also renamed to `inactive`; map the legacy value across so a stored
+ * distro doesn't come back with a status that's no longer in the union.
+ */
+const migrateDistroStatus = (distro: Distro): Distro => {
+  if (!distro.status) return { ...distro, status: DEFAULT_DISTRO_STATUS };
+  if ((distro.status as string) === "cold") {
+    return { ...distro, status: "inactive" };
+  }
+  return distro;
 };
 
 const ensureCatalog = (raw: ParamsCatalog | undefined): ParamsCatalog => {
@@ -240,9 +320,12 @@ const loadFromStorage = (): AppState | null => {
         .map(migrateEntityRegion),
       distros: parsed.distros
         .map(migrateCustomFields)
-        .map(migrateEntityRegion),
+        .map(migrateEntityRegion)
+        .map(migrateDistroStatus),
       paramsCatalog: ensureCatalog(parsed.paramsCatalog),
       regions: ensureRegions(parsed.regions),
+      transcoding: ensureTranscoding(parsed.transcoding),
+      transcodePresets: ensureTranscodePresets(parsed.transcodePresets),
     };
   } catch {
     return null;
@@ -266,10 +349,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       addDistro: (distro) => dispatch({ type: "addDistro", distro }),
       updateDistro: (distro) => dispatch({ type: "updateDistro", distro }),
       removeDistro: (id) => dispatch({ type: "removeDistro", id }),
+      setDistroStatus: (id, status) =>
+        dispatch({ type: "setDistroStatus", id, status }),
+      setAllDistrosStatus: (status) =>
+        dispatch({ type: "setAllDistrosStatus", status }),
+      setTranscoding: (config) => dispatch({ type: "setTranscoding", config }),
+      addTranscodePreset: (preset) =>
+        dispatch({ type: "addTranscodePreset", preset }),
+      updateTranscodePreset: (preset) =>
+        dispatch({ type: "updateTranscodePreset", preset }),
+      deleteTranscodePreset: (id) =>
+        dispatch({ type: "deleteTranscodePreset", id }),
       addTemplate: (template) => dispatch({ type: "addTemplate", template }),
       updateTemplate: (template) =>
         dispatch({ type: "updateTemplate", template }),
       deleteTemplates: (ids) => dispatch({ type: "deleteTemplates", ids }),
+      setTemplateDisabled: (id, disabled) =>
+        dispatch({ type: "setTemplateDisabled", id, disabled }),
       addParam: (family, param) => dispatch({ type: "addParam", family, param }),
       updateParam: (family, param) =>
         dispatch({ type: "updateParam", family, param }),

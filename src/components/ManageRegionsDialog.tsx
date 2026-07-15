@@ -4,18 +4,19 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
   IconButton,
   Stack,
   TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import { DialogHeader } from "./DialogHeader";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../state/AppContext";
 import { newId } from "../lib/ids";
+import { MONO_FONT_STACK } from "../theme";
+import { useConfirm } from "./ConfirmDialog";
 
 interface Props {
   open: boolean;
@@ -25,6 +26,7 @@ interface Props {
 
 export const ManageRegionsDialog = ({ open, onClose, onSaved }: Props) => {
   const { state, addRegion, updateRegion, deleteRegion } = useApp();
+  const { confirm, confirmDialog } = useConfirm();
   const [addMode, setAddMode] = useState(false);
   const [newName, setNewName] = useState("");
   const [newBaseUrl, setNewBaseUrl] = useState("");
@@ -62,21 +64,20 @@ export const ManageRegionsDialog = ({ open, onClose, onSaved }: Props) => {
     updateRegion({ ...existing, baseUrl });
   };
 
-  const handleDelete = (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (regions.length <= 1) {
-      window.alert(
-        "Can't delete the last region. Add another region first, then delete this one.",
+      onSaved?.(
+        "Can't delete the last region — add another one first.",
       );
       return;
     }
-    if (
-      window.confirm(
-        `Delete region "${name}"? Existing distros tied to this region will fall back to a default base URL. This cannot be undone.`,
-      )
-    ) {
-      deleteRegion(id);
-      onSaved?.(`Removed region "${name}"`);
-    }
+    const ok = await confirm({
+      title: "Delete region?",
+      message: `"${name}" will be removed. Existing distros tied to this region fall back to a default base URL. This cannot be undone.`,
+    });
+    if (!ok) return;
+    deleteRegion(id);
+    onSaved?.(`Removed region "${name}"`);
   };
 
   const handleAdd = () => {
@@ -101,18 +102,7 @@ export const ManageRegionsDialog = ({ open, onClose, onSaved }: Props) => {
         sx: { backgroundColor: "background.paper", borderRadius: 1 },
       }}
     >
-      <DialogTitle sx={{ pr: 6, py: 2 }}>
-        <Typography variant="h6" component="div" sx={{ fontWeight: 500 }}>
-          Manage Regions
-        </Typography>
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          sx={{ position: "absolute", right: 8, top: 8 }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+      <DialogHeader title="Manage Regions" onClose={onClose} tier="sub" />
       <DialogContent sx={{ px: 3, pb: 1 }}>
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Typography variant="body2" color="text.secondary">
@@ -164,7 +154,7 @@ export const ManageRegionsDialog = ({ open, onClose, onSaved }: Props) => {
                       sx={{
                         flex: 2,
                         "& .MuiInputBase-input": {
-                          fontFamily: "ui-monospace, monospace",
+                          fontFamily: MONO_FONT_STACK,
                           fontSize: 12,
                         },
                       }}
@@ -202,7 +192,7 @@ export const ManageRegionsDialog = ({ open, onClose, onSaved }: Props) => {
                 sx={{
                   flex: 2,
                   "& .MuiInputBase-input": {
-                    fontFamily: "ui-monospace, monospace",
+                    fontFamily: MONO_FONT_STACK,
                     fontSize: 12,
                   },
                 }}
@@ -239,10 +229,11 @@ export const ManageRegionsDialog = ({ open, onClose, onSaved }: Props) => {
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 2, py: 1.5 }}>
-        <Button onClick={onClose} sx={{ color: "primary.main" }}>
+        <Button onClick={onClose} color="primary">
           Done
         </Button>
       </DialogActions>
+      {confirmDialog}
     </Dialog>
   );
 };

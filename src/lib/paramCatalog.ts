@@ -1,8 +1,5 @@
 import type { ParamDef, ParamsCatalog } from "../types";
 
-// Re-export the type for callers who already imported ParamDef from here.
-export type { ParamDef } from "../types";
-
 // Order in each array defines the on-screen 3-column grid order, top-to-bottom
 // row-by-row.
 export const SEED_NEXXEN_PARAMS: ParamDef[] = [

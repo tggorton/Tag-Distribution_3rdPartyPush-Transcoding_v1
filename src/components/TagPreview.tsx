@@ -1,6 +1,7 @@
 import { Box, IconButton, Tooltip, Typography } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useState } from "react";
+import { MONO_FONT_STACK } from "../theme";
 
 interface Props {
   tagString: string;
@@ -23,7 +24,7 @@ export const TagPreview = ({
     <Box
       sx={{
         position: "relative",
-        backgroundColor: "#1a1a1a",
+        backgroundColor: "background.sunken",
         border: 1,
         borderColor: "divider",
         borderRadius: 1,
@@ -36,7 +37,7 @@ export const TagPreview = ({
       <Typography
         variant="body2"
         sx={{
-          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+          fontFamily: MONO_FONT_STACK,
           fontSize: 12,
           wordBreak: "break-all",
           whiteSpace: "pre-wrap",

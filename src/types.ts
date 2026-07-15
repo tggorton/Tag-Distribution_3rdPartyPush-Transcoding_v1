@@ -36,7 +36,38 @@ export interface Template {
    * Templates with no advertiserId are visible to everyone.
    */
   advertiserId?: string;
+  /**
+   * When true, the template is hidden from the main Add Distribution Tag
+   * dropdown but remains visible (greyed out) in the admin Manage Templates
+   * picker so an admin can re-enable it. Existing distros that referenced
+   * this template are unaffected — they're self-contained snapshots.
+   */
+  disabled?: boolean;
 }
+
+/**
+ * Delivery status of a distro's underlying creatives / transcoding pipeline.
+ * The backend owns the real lifecycle; the UI reflects it and offers a restart.
+ *
+ *   default    green  — running on the video baseline; no platform preset has
+ *                       been officially applied yet. Fine to serve (hence green),
+ *                       but distinct from `live` so an un-set line-item is visible.
+ *   live       green  — conformed to a chosen platform preset; ready to serve
+ *   processing amber  — transcoding / in flight
+ *   error      red    — the transcode failed; retrying may fix it
+ *   outOfSpec  orange — transcode settings were manually overridden and may not
+ *                       meet the target pub/platform's spec. A *config* problem,
+ *                       not a run failure — re-running the same settings would
+ *                       reproduce it, so this is not restartable.
+ *   inactive   grey   — off / dormant; restart rebuilds it
+ */
+export type DistroStatus =
+  | "default"
+  | "live"
+  | "processing"
+  | "error"
+  | "outOfSpec"
+  | "inactive";
 
 export interface Distro {
   id: string;
@@ -50,6 +81,7 @@ export interface Distro {
   distributionId: number;
   lineItemId: number;
   createdAt: string;
+  status: DistroStatus;
 }
 
 export interface ParamDef {
@@ -66,6 +98,37 @@ export interface ParamsCatalog {
 
 export type ParamFamilyKey = "nexxen" | "ttd" | "creative";
 
+/**
+ * A flat map of transcode field id → value. Values are stored as strings even
+ * for numeric-looking fields ("15–30 Mbps") — this is a settings sheet the user
+ * reads and tweaks, not something we compute with.
+ */
+export type TranscodeSettings = Record<string, string>;
+
+/**
+ * The line-item's effective transcoding config. `presetId` records which preset
+ * the settings were last derived from; `settings` is the effective (possibly
+ * hand-edited) value set. When `settings` diverges from that preset's canonical
+ * values, the config is a one-off override for this line-item — the preset
+ * itself is never mutated.
+ */
+export interface TranscodingConfig {
+  presetId: string;
+  settings: TranscodeSettings;
+}
+
+/**
+ * A named transcoding preset (a publisher spec, plus the protected "default"
+ * baseline). Admin-managed and mutable — lives in AppState, seeded from the
+ * built-in list. `shortName` is the compact form for tight UI (status chips).
+ */
+export interface TranscodePreset {
+  id: string;
+  name: string;
+  shortName: string;
+  settings: TranscodeSettings;
+}
+
 export interface AppState {
   role: Role;
   templates: Template[];
@@ -73,4 +136,6 @@ export interface AppState {
   nextDistributionId: number;
   paramsCatalog: ParamsCatalog;
   regions: RegionDef[];
+  transcoding: TranscodingConfig;
+  transcodePresets: TranscodePreset[];
 }

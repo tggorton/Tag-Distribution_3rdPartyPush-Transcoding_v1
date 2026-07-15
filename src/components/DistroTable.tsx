@@ -1,6 +1,7 @@
 import {
   Divider,
   IconButton,
+  ListItemText,
   Menu,
   MenuItem,
   Stack,
@@ -14,22 +15,47 @@ import {
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { useState, type MouseEvent } from "react";
-import type { Distro } from "../types";
+import type { Distro, DistroStatus } from "../types";
 import { buildDistroUrl } from "../lib/tagBuilder";
+import {
+  STATUS_ORDER,
+  isRestartable,
+  restartActionLabel,
+  restartDisabledReason,
+} from "../lib/distroStatus";
+import { activePublisher } from "../lib/transcodePresets";
 import { useApp } from "../state/AppContext";
+import { DistroStatusChip } from "./DistroStatusChip";
 
 interface Props {
   distros: Distro[];
   onCopy: (distro: Distro) => void;
   onEdit: (distro: Distro) => void;
   onDelete: (distro: Distro) => void;
+  onRestart: (distro: Distro) => void;
+  /**
+   * Prototype-only affordance: lets a status be forced from the ⋯ menu so the
+   * restart flow is demoable. The backend owns status in production.
+   */
+  onSetStatus: (distro: Distro, status: DistroStatus) => void;
 }
 
-export const DistroTable = ({ distros, onCopy, onEdit, onDelete }: Props) => {
+export const DistroTable = ({
+  distros,
+  onCopy,
+  onEdit,
+  onDelete,
+  onRestart,
+  onSetStatus,
+}: Props) => {
   const { state } = useApp();
   const catalog = state.paramsCatalog;
   const regions = state.regions;
+  // All distros share the line-item's transcoding config, so the publisher is
+  // the same for every row. Null on the Default baseline (no publisher to name).
+  const pub = activePublisher(state.transcoding, state.transcodePresets);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [activeDistro, setActiveDistro] = useState<Distro | null>(null);
 
@@ -53,6 +79,11 @@ export const DistroTable = ({ distros, onCopy, onEdit, onDelete }: Props) => {
     closeMenu();
   };
 
+  const handleSetStatus = (status: DistroStatus) => {
+    if (activeDistro) onSetStatus(activeDistro, status);
+    closeMenu();
+  };
+
   if (distros.length === 0) {
     return (
       <Typography
@@ -72,6 +103,7 @@ export const DistroTable = ({ distros, onCopy, onEdit, onDelete }: Props) => {
         <TableHead>
           <TableRow>
             <TableCell>Name</TableCell>
+            <TableCell sx={{ minWidth: 180 }}>Status</TableCell>
             <TableCell>Distribution Tag</TableCell>
             <TableCell align="right">Actions</TableCell>
           </TableRow>
@@ -79,12 +111,16 @@ export const DistroTable = ({ distros, onCopy, onEdit, onDelete }: Props) => {
         <TableBody>
           {distros.map((d) => {
             const url = buildDistroUrl(d, catalog, regions);
+            const restartable = isRestartable(d.status);
             return (
               <TableRow key={d.id} hover>
                 <TableCell sx={{ maxWidth: 200 }}>
                   <Typography variant="body2" noWrap>
                     {d.name}
                   </Typography>
+                </TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                  <DistroStatusChip status={d.status} pub={pub} />
                 </TableCell>
                 <TableCell sx={{ maxWidth: 540 }}>
                   <Typography
@@ -109,6 +145,26 @@ export const DistroTable = ({ distros, onCopy, onEdit, onDelete }: Props) => {
                       >
                         <ContentCopyIcon fontSize="small" />
                       </IconButton>
+                    </Tooltip>
+                    <Tooltip
+                      title={
+                        restartable
+                          ? restartActionLabel(d.status)
+                          : restartDisabledReason(d.status)
+                      }
+                    >
+                      {/* span: a disabled button emits no events, so the Tooltip
+                          needs a wrapper to stay hoverable. */}
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => onRestart(d)}
+                          disabled={!restartable}
+                          sx={{ color: "text.secondary" }}
+                        >
+                          <RestartAltIcon fontSize="small" />
+                        </IconButton>
+                      </span>
                     </Tooltip>
                     <Tooltip title="More actions">
                       <IconButton
@@ -142,6 +198,24 @@ export const DistroTable = ({ distros, onCopy, onEdit, onDelete }: Props) => {
         <MenuItem onClick={closeMenu}>Launch Test Page</MenuItem>
         <MenuItem onClick={closeMenu}>Launch Test Page (3rd Party Tag)</MenuItem>
         <MenuItem onClick={closeMenu}>View Report</MenuItem>
+        <Divider />
+        <ListItemText
+          sx={{ px: 2, py: 0.5, m: 0 }}
+          primary="Set status (prototype)"
+          primaryTypographyProps={{
+            variant: "overline",
+            color: "text.secondary",
+          }}
+        />
+        {STATUS_ORDER.map((status) => (
+          <MenuItem
+            key={status}
+            selected={activeDistro?.status === status}
+            onClick={() => handleSetStatus(status)}
+          >
+            <DistroStatusChip status={status} />
+          </MenuItem>
+        ))}
         <Divider />
         <MenuItem
           onClick={handleDelete}

@@ -1,21 +1,35 @@
-import { Box, Button, Snackbar, Stack } from "@mui/material";
-import { useState } from "react";
+import { Box, Button, Snackbar, Stack, Typography } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "../state/AppContext";
-import type { Distro } from "../types";
+import type { Distro, DistroStatus, TranscodingConfig } from "../types";
 import { buildDistroUrl } from "../lib/tagBuilder";
 import { downloadCsv } from "../lib/csvExport";
+import { RESTART_SIMULATION_MS, STATUS_META } from "../lib/distroStatus";
+import {
+  describeTranscoding,
+  transcodeLandingStatus,
+} from "../lib/transcodePresets";
 import { DistroTable } from "./DistroTable";
 import { TagEditorDialog } from "./TagEditorDialog";
 import { ManageTemplatesDialog } from "./ManageTemplatesDialog";
+import { PushTagsDialog } from "./PushTagsDialog";
+import { TranscodingSettingsDialog } from "./TranscodingSettingsDialog";
 import { SectionHeader } from "./SectionHeader";
+import { useConfirm } from "./ConfirmDialog";
 
 export const DistrosSection = () => {
-  const { state, removeDistro } = useApp();
+  const { state, removeDistro, setDistroStatus, setAllDistrosStatus, setTranscoding } =
+    useApp();
+  const { confirm, confirmDialog } = useConfirm();
   const isAdmin = state.role === "admin";
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Distro | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
+  const [pushOpen, setPushOpen] = useState(false);
+  const [transcodeOpen, setTranscodeOpen] = useState(false);
   const [snack, setSnack] = useState<string | null>(null);
+
+  const hasDistros = state.distros.length > 0;
 
   const handleCopy = async (distro: Distro) => {
     await navigator.clipboard.writeText(
@@ -24,17 +38,72 @@ export const DistrosSection = () => {
     setSnack(`Copied tag URL for "${distro.name}"`);
   };
 
-  const handleDelete = (distro: Distro) => {
-    if (
-      window.confirm(`Delete distribution "${distro.name}"? This cannot be undone.`)
-    ) {
-      removeDistro(distro.id);
-      setSnack(`Deleted "${distro.name}"`);
+  const handleDelete = async (distro: Distro) => {
+    const ok = await confirm({
+      title: "Delete distribution?",
+      message: `"${distro.name}" will be removed. This cannot be undone.`,
+    });
+    if (!ok) return;
+    removeDistro(distro.id);
+    setSnack(`Deleted "${distro.name}"`);
+  };
+
+  // Prototype stand-in for the backend's transcode lifecycle: a restarted distro
+  // sits in Processing, then reports Live. Tracked so a pending timer can't fire
+  // a status write after unmount.
+  const restartTimers = useRef<number[]>([]);
+  useEffect(
+    () => () => restartTimers.current.forEach((t) => window.clearTimeout(t)),
+    [],
+  );
+
+  const handleRestart = (distro: Distro) => {
+    const retrying = distro.status === "error";
+    setDistroStatus(distro.id, "processing");
+    setSnack(
+      retrying
+        ? `Retrying transcode for "${distro.name}"…`
+        : `Restarting creatives for "${distro.name}"…`,
+    );
+    const timer = window.setTimeout(() => {
+      setDistroStatus(distro.id, "live");
+      setSnack(`"${distro.name}" is live`);
+    }, RESTART_SIMULATION_MS);
+    restartTimers.current.push(timer);
+  };
+
+  const handleSetStatus = (distro: Distro, status: DistroStatus) => {
+    setDistroStatus(distro.id, status);
+    setSnack(`"${distro.name}" set to ${STATUS_META[status].label}`);
+  };
+
+  const handleApplyTranscoding = (config: TranscodingConfig) => {
+    setTranscoding(config);
+    const label = describeTranscoding(config, state.transcodePresets);
+    if (!hasDistros) {
+      setSnack(`Transcoding settings saved — ${label}`);
+      return;
     }
+    // Re-transcode every distro: all go Processing, then land on the status the
+    // config implies — Out of Spec (edited), Default (baseline), or Live (preset).
+    const landing = transcodeLandingStatus(config, state.transcodePresets);
+    setAllDistrosStatus("processing");
+    setSnack(`Re-transcoding ${state.distros.length} distribution(s) — ${label}…`);
+    const doneMessage =
+      landing === "outOfSpec"
+        ? "Transcode complete — settings are a custom override (Out of Spec)"
+        : landing === "default"
+          ? "Transcode complete — all distributions on the video baseline (Default)"
+          : `Transcode complete — all distributions live on ${label}`;
+    const timer = window.setTimeout(() => {
+      setAllDistrosStatus(landing);
+      setSnack(doneMessage);
+    }, RESTART_SIMULATION_MS);
+    restartTimers.current.push(timer);
   };
 
   const handleExport = () => {
-    if (state.distros.length === 0) {
+    if (!hasDistros) {
       setSnack("No distributions to export");
       return;
     }
@@ -56,6 +125,14 @@ export const DistrosSection = () => {
             >
               + Add Distribution Tag
             </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              onClick={() => setTranscodeOpen(true)}
+            >
+              Transcoding Settings
+            </Button>
             {isAdmin && (
               <Button
                 variant="outlined"
@@ -70,19 +147,37 @@ export const DistrosSection = () => {
               variant="outlined"
               color="primary"
               size="small"
-              onClick={handleExport}
-              disabled={state.distros.length === 0}
+              onClick={() => setPushOpen(true)}
+              disabled={!hasDistros}
             >
-              Export Distribution Tags
+              Push Tags to Platform
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              onClick={handleExport}
+              disabled={!hasDistros}
+            >
+              Export Tags
             </Button>
           </Stack>
         }
       />
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ mt: -0.5, mb: 1.5 }}
+      >
+        Transcoding: {describeTranscoding(state.transcoding, state.transcodePresets)}
+      </Typography>
       <DistroTable
         distros={state.distros}
         onCopy={handleCopy}
         onEdit={(d) => setEditing(d)}
         onDelete={handleDelete}
+        onRestart={handleRestart}
+        onSetStatus={handleSetStatus}
       />
       <TagEditorDialog
         open={addOpen}
@@ -100,6 +195,18 @@ export const DistrosSection = () => {
         onClose={() => setManageOpen(false)}
         onSaved={(message) => setSnack(message)}
       />
+      <PushTagsDialog
+        open={pushOpen}
+        tagCount={state.distros.length}
+        onClose={() => setPushOpen(false)}
+        onSaved={(message) => setSnack(message)}
+      />
+      <TranscodingSettingsDialog
+        open={transcodeOpen}
+        onClose={() => setTranscodeOpen(false)}
+        onApply={handleApplyTranscoding}
+        onSaved={(message) => setSnack(message)}
+      />
       <Snackbar
         open={Boolean(snack)}
         autoHideDuration={2000}
@@ -107,6 +214,7 @@ export const DistrosSection = () => {
         message={snack ?? ""}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       />
+      {confirmDialog}
     </Box>
   );
 };

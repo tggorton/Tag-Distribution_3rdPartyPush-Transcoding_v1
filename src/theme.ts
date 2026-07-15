@@ -4,17 +4,52 @@ const PINK = "#EF0078";
 const PINK_HOVER = "#D82388";
 const NAV_BLUE = "#001529";
 const PAPER = "#383838";
+const SUNKEN = "#1a1a1a";
 const BORDER = "#5D5D5D";
+
+/**
+ * Deep orange for the `outOfSpec` distro status. It has to sit clearly apart
+ * from BOTH neighbours it will be scanned against in the status column:
+ * `processing` amber (#ffa726, yellow-leaning) and `error` red (#f44336).
+ */
+const OUT_OF_SPEC_ORANGE = "#F26522";
 
 const SYSTEM_FONT_STACK =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+
+/**
+ * Monospace stack for tag strings, param outputs, and base URLs — anywhere the
+ * user reads raw tag syntax. Import this rather than re-typing a stack inline.
+ */
+export const MONO_FONT_STACK =
+  'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
+
+/**
+ * `background.sunken` is a recessed surface that reads as *below* the paper
+ * surface — used for read-only code/preview panels (see TagPreview).
+ *
+ * `outOfSpec` is a status color, not a UI intent — see lib/distroStatus.ts.
+ * MUI has no built-in slot between `warning` and `error`, so it gets its own.
+ */
+declare module "@mui/material/styles" {
+  interface TypeBackground {
+    sunken: string;
+  }
+  interface Palette {
+    outOfSpec: Palette["primary"];
+  }
+  interface PaletteOptions {
+    outOfSpec?: PaletteOptions["primary"];
+  }
+}
 
 export const theme = createTheme({
   palette: {
     mode: "dark",
     primary: { main: PINK, dark: PINK_HOVER, contrastText: "#ffffff" },
     secondary: { main: NAV_BLUE },
-    background: { default: "#000000", paper: PAPER },
+    outOfSpec: { main: OUT_OF_SPEC_ORANGE, contrastText: "#000000" },
+    background: { default: "#000000", paper: PAPER, sunken: SUNKEN },
     text: {
       primary: "#ffffff",
       secondary: "#cdcdcd",

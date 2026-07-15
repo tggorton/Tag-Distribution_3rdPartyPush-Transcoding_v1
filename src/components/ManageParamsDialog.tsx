@@ -4,18 +4,19 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
   IconButton,
   Stack,
   TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import { DialogHeader } from "./DialogHeader";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../state/AppContext";
 import { newId } from "../lib/ids";
+import { MONO_FONT_STACK } from "../theme";
+import { useConfirm } from "./ConfirmDialog";
 import type { ParamFamilyKey } from "../types";
 
 interface Props {
@@ -44,6 +45,7 @@ export const ManageParamsDialog = ({
   onSaved,
 }: Props) => {
   const { state, addParam, updateParam, deleteParam } = useApp();
+  const { confirm, confirmDialog } = useConfirm();
   const [addMode, setAddMode] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [newOutput, setNewOutput] = useState("");
@@ -84,15 +86,14 @@ export const ManageParamsDialog = ({
     updateParam(family, { ...existing, output });
   };
 
-  const handleDelete = (id: string, label: string) => {
-    if (
-      window.confirm(
-        `Delete parameter "${label}"? Existing templates and distros that referenced it will silently lose this output. This cannot be undone.`,
-      )
-    ) {
-      deleteParam(family, id);
-      onSaved?.(`Removed "${label}" from ${SECTION_NAMES[family]}`);
-    }
+  const handleDelete = async (id: string, label: string) => {
+    const ok = await confirm({
+      title: "Delete parameter?",
+      message: `"${label}" will be removed. Existing templates and distros that referenced it will silently lose this output. This cannot be undone.`,
+    });
+    if (!ok) return;
+    deleteParam(family, id);
+    onSaved?.(`Removed "${label}" from ${SECTION_NAMES[family]}`);
   };
 
   const handleAdd = () => {
@@ -121,18 +122,7 @@ export const ManageParamsDialog = ({
         sx: { backgroundColor: "background.paper", borderRadius: 1 },
       }}
     >
-      <DialogTitle sx={{ pr: 6, py: 2 }}>
-        <Typography variant="h6" component="div" sx={{ fontWeight: 500 }}>
-          {title}
-        </Typography>
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          sx={{ position: "absolute", right: 8, top: 8 }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+      <DialogHeader title={title} onClose={onClose} tier="sub" />
       <DialogContent sx={{ px: 3, pb: 1 }}>
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Typography variant="body2" color="text.secondary">
@@ -183,7 +173,7 @@ export const ManageParamsDialog = ({
                       sx={{
                         flex: 2,
                         "& .MuiInputBase-input": {
-                          fontFamily: "ui-monospace, monospace",
+                          fontFamily: MONO_FONT_STACK,
                           fontSize: 12,
                         },
                       }}
@@ -221,7 +211,7 @@ export const ManageParamsDialog = ({
                 sx={{
                   flex: 2,
                   "& .MuiInputBase-input": {
-                    fontFamily: "ui-monospace, monospace",
+                    fontFamily: MONO_FONT_STACK,
                     fontSize: 12,
                   },
                 }}
@@ -258,10 +248,11 @@ export const ManageParamsDialog = ({
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 2, py: 1.5 }}>
-        <Button onClick={onClose} sx={{ color: "primary.main" }}>
+        <Button onClick={onClose} color="primary">
           Done
         </Button>
       </DialogActions>
+      {confirmDialog}
     </Dialog>
   );
 };

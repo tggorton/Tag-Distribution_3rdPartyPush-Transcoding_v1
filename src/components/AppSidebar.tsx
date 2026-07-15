@@ -92,7 +92,7 @@ export const AppSidebar = () => (
     aria-label="Primary navigation"
     sx={{
       width: 80,
-      backgroundColor: "#001529",
+      backgroundColor: "secondary.main",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",

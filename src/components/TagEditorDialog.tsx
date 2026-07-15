@@ -1,16 +1,14 @@
 import {
+  Autocomplete,
   Box,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
   Divider,
   FormControl,
   FormControlLabel,
   FormLabel,
-  IconButton,
-  MenuItem,
   Radio,
   RadioGroup,
   Stack,
@@ -19,8 +17,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DialogHeader } from "./DialogHeader";
 import type {
   CustomKeyValue,
   Distro,
@@ -30,6 +28,7 @@ import type {
 } from "../types";
 import { buildTagString } from "../lib/tagBuilder";
 import { newId } from "../lib/ids";
+import { transcodeLandingStatus } from "../lib/transcodePresets";
 import { isVisibleForCurrentAdvertiser } from "../lib/advertisers";
 import { useApp } from "../state/AppContext";
 import { TagPreview } from "./TagPreview";
@@ -160,11 +159,12 @@ export const TagEditorDialog = ({
   const familyTitle = form.family === "nexxen" ? "Nexxen Params" : "TTD Params";
 
   // Distro creators (reg users + admins on Add Distribution Tag) only see
-  // templates that are unscoped or scoped to the current advertiser.
+  // templates that are (a) not disabled and (b) unscoped or scoped to the
+  // current advertiser.
   const visibleTemplates = useMemo(
     () =>
-      state.templates.filter((t) =>
-        isVisibleForCurrentAdvertiser(t.advertiserId),
+      state.templates.filter(
+        (t) => !t.disabled && isVisibleForCurrentAdvertiser(t.advertiserId),
       ),
     [state.templates],
   );
@@ -195,6 +195,9 @@ export const TagEditorDialog = ({
         distributionId: nextDistributionId(),
         lineItemId: 4387,
         createdAt: new Date().toISOString(),
+        // A new distro inherits the line-item's current transcode state: Default
+        // baseline, a platform preset (Live), or a custom override (Out of Spec).
+        status: transcodeLandingStatus(state.transcoding, state.transcodePresets),
       };
       addDistro(distro);
       onSaved?.(`Added "${distro.name}"`);
@@ -216,22 +219,7 @@ export const TagEditorDialog = ({
         },
       }}
     >
-      <DialogTitle sx={{ pr: 6, pt: 3, pb: 2 }}>
-        <Typography
-          variant="h4"
-          component="div"
-          sx={{ color: "primary.main", fontWeight: 400 }}
-        >
-          {dialogTitle}
-        </Typography>
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          sx={{ position: "absolute", right: 8, top: 8 }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+      <DialogHeader title={dialogTitle} onClose={onClose} />
       <Divider />
       <DialogContent sx={{ px: 4, py: 3 }}>
         <Stack spacing={3}>
@@ -250,35 +238,26 @@ export const TagEditorDialog = ({
           />
 
           {showTemplateSelector && (
-            <TextField
-              select
-              label="Tag Template"
-              value={templateId}
-              onChange={(e) => handleTemplateChange(e.target.value)}
-              size="medium"
+            <Autocomplete
+              value={
+                visibleTemplates.find((t) => t.id === templateId) ?? null
+              }
+              onChange={(_, newValue) =>
+                handleTemplateChange(newValue?.id ?? "")
+              }
+              options={visibleTemplates}
+              getOptionLabel={(opt) => opt.name}
+              isOptionEqualToValue={(opt, val) => opt.id === val.id}
               fullWidth
-              InputLabelProps={{ shrink: true }}
-              SelectProps={{
-                displayEmpty: true,
-                renderValue: (selected) => {
-                  if (!selected) {
-                    return (
-                      <span style={{ color: "rgba(255,255,255,0.5)" }}>
-                        Select Template (optional)
-                      </span>
-                    );
-                  }
-                  const tpl = state.templates.find((t) => t.id === selected);
-                  return tpl?.name ?? "";
-                },
-              }}
-            >
-              {visibleTemplates.map((t) => (
-                <MenuItem key={t.id} value={t.id}>
-                  {t.name}
-                </MenuItem>
-              ))}
-            </TextField>
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Tag Template"
+                  placeholder="Select Template (optional) — start typing to search"
+                  InputLabelProps={{ shrink: true }}
+                />
+              )}
+            />
           )}
 
           <FormControl>
