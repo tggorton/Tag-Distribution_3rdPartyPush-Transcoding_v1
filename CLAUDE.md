@@ -178,6 +178,14 @@ for the pattern) — users have existing localStorage and a bad load silently re
 ## Roles
 
 A `user` / `admin` toggle lives in the top bar (prototype affordance, not real auth).
-Admin-only affordances are gated on `state.role === "admin"` — currently the Manage
-Templates button, which is the entry point to all catalog management (templates,
-params, regions).
+Admin-only affordances are gated on `state.role === "admin"`. The convention is an
+**edit (pencil) icon next to the relevant dropdown inside a modal**, not a separate
+top-level button — it opens the catalog manager for that thing:
+- Tag Template dropdown in [TagEditorDialog](src/components/TagEditorDialog.tsx) → pencil →
+  [ManageTemplatesDialog](src/components/ManageTemplatesDialog.tsx) (which itself nests the
+  param and region managers via their own pencils).
+- Preset dropdown in [TranscodingSettingsDialog](src/components/TranscodingSettingsDialog.tsx)
+  → pencil → [ManageTranscodePresetsDialog](src/components/ManageTranscodePresetsDialog.tsx).
+
+Keep new admin catalog-management entry points on this pattern rather than adding buttons
+to the Distributions header.

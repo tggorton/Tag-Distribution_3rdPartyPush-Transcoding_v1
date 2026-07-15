@@ -11,7 +11,6 @@ import {
 } from "../lib/transcodePresets";
 import { DistroTable } from "./DistroTable";
 import { TagEditorDialog } from "./TagEditorDialog";
-import { ManageTemplatesDialog } from "./ManageTemplatesDialog";
 import { PushTagsDialog } from "./PushTagsDialog";
 import { TranscodingSettingsDialog } from "./TranscodingSettingsDialog";
 import { SectionHeader } from "./SectionHeader";
@@ -21,10 +20,8 @@ export const DistrosSection = () => {
   const { state, removeDistro, setDistroStatus, setAllDistrosStatus, setTranscoding } =
     useApp();
   const { confirm, confirmDialog } = useConfirm();
-  const isAdmin = state.role === "admin";
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Distro | null>(null);
-  const [manageOpen, setManageOpen] = useState(false);
   const [pushOpen, setPushOpen] = useState(false);
   const [transcodeOpen, setTranscodeOpen] = useState(false);
   const [snack, setSnack] = useState<string | null>(null);
@@ -133,16 +130,6 @@ export const DistrosSection = () => {
             >
               Transcoding Settings
             </Button>
-            {isAdmin && (
-              <Button
-                variant="outlined"
-                color="primary"
-                size="small"
-                onClick={() => setManageOpen(true)}
-              >
-                Manage Templates
-              </Button>
-            )}
             <Button
               variant="outlined"
               color="primary"
@@ -188,11 +175,6 @@ export const DistrosSection = () => {
         open={Boolean(editing)}
         editingDistro={editing}
         onClose={() => setEditing(null)}
-        onSaved={(message) => setSnack(message)}
-      />
-      <ManageTemplatesDialog
-        open={manageOpen}
-        onClose={() => setManageOpen(false)}
         onSaved={(message) => setSnack(message)}
       />
       <PushTagsDialog

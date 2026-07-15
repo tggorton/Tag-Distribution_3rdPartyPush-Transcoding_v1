@@ -9,16 +9,20 @@ import {
   FormControl,
   FormControlLabel,
   FormLabel,
+  IconButton,
   Radio,
   RadioGroup,
   Stack,
   Tab,
   Tabs,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DialogHeader } from "./DialogHeader";
+import { ManageTemplatesDialog } from "./ManageTemplatesDialog";
 import type {
   CustomKeyValue,
   Distro,
@@ -89,10 +93,12 @@ export const TagEditorDialog = ({
   const { state, addDistro, updateDistro, nextDistributionId } = useApp();
   const catalog = state.paramsCatalog;
   const isEditMode = Boolean(editingDistro);
+  const isAdmin = state.role === "admin";
 
   const [templateId, setTemplateId] = useState<string>("");
   const [form, setForm] = useState<FormState>(emptyFormState);
   const [nameError, setNameError] = useState(false);
+  const [manageTemplatesOpen, setManageTemplatesOpen] = useState(false);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
 
   // Reset every time the dialog opens.
@@ -105,6 +111,7 @@ export const TagEditorDialog = ({
     }
     setTemplateId("");
     setNameError(false);
+    setManageTemplatesOpen(false);
   }, [open, editingDistro]);
 
   const tagString = useMemo(() => buildTagString(form, catalog), [form, catalog]);
@@ -238,26 +245,39 @@ export const TagEditorDialog = ({
           />
 
           {showTemplateSelector && (
-            <Autocomplete
-              value={
-                visibleTemplates.find((t) => t.id === templateId) ?? null
-              }
-              onChange={(_, newValue) =>
-                handleTemplateChange(newValue?.id ?? "")
-              }
-              options={visibleTemplates}
-              getOptionLabel={(opt) => opt.name}
-              isOptionEqualToValue={(opt, val) => opt.id === val.id}
-              fullWidth
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Tag Template"
-                  placeholder="Select Template (optional) — start typing to search"
-                  InputLabelProps={{ shrink: true }}
-                />
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Autocomplete
+                value={
+                  visibleTemplates.find((t) => t.id === templateId) ?? null
+                }
+                onChange={(_, newValue) =>
+                  handleTemplateChange(newValue?.id ?? "")
+                }
+                options={visibleTemplates}
+                getOptionLabel={(opt) => opt.name}
+                isOptionEqualToValue={(opt, val) => opt.id === val.id}
+                sx={{ flex: 1 }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Tag Template"
+                    placeholder="Select Template (optional) — start typing to search"
+                    InputLabelProps={{ shrink: true }}
+                  />
+                )}
+              />
+              {isAdmin && (
+                <Tooltip title="Add, edit, or remove templates (admin)">
+                  <IconButton
+                    size="small"
+                    onClick={() => setManageTemplatesOpen(true)}
+                    sx={{ color: "text.primary" }}
+                  >
+                    <EditOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
               )}
-            />
+            </Stack>
           )}
 
           <FormControl>
@@ -331,6 +351,13 @@ export const TagEditorDialog = ({
           {submitLabel}
         </Button>
       </DialogActions>
+      {isAdmin && showTemplateSelector && (
+        <ManageTemplatesDialog
+          open={manageTemplatesOpen}
+          onClose={() => setManageTemplatesOpen(false)}
+          onSaved={onSaved}
+        />
+      )}
     </Dialog>
   );
 };
