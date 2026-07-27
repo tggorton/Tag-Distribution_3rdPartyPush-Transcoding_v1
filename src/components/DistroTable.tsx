@@ -17,17 +17,22 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { useState, type MouseEvent } from "react";
-import type { Distro, DistroStatus } from "../types";
+import type { Distro, DistroStatus, PlatformStatus } from "../types";
 import { buildDistroUrl } from "../lib/tagBuilder";
 import {
+  STATUS_META,
   STATUS_ORDER,
   isRestartable,
   restartActionLabel,
   restartDisabledReason,
 } from "../lib/distroStatus";
+import {
+  PLATFORM_STATUS_META,
+  PLATFORM_STATUS_ORDER,
+} from "../lib/platformStatus";
 import { activePublisher } from "../lib/transcodePresets";
 import { useApp } from "../state/AppContext";
-import { DistroStatusChip } from "./DistroStatusChip";
+import { StatusChip } from "./StatusChip";
 
 interface Props {
   distros: Distro[];
@@ -36,11 +41,17 @@ interface Props {
   onDelete: (distro: Distro) => void;
   onRestart: (distro: Distro) => void;
   /**
-   * Prototype-only affordance: lets a status be forced from the ⋯ menu so the
-   * restart flow is demoable. The backend owns status in production.
+   * Prototype-only affordances: force a status from the ⋯ menu so the restart /
+   * push flows are demoable. The backend owns these lifecycles in production.
    */
   onSetStatus: (distro: Distro, status: DistroStatus) => void;
+  onSetPlatformStatus: (distro: Distro, status: PlatformStatus) => void;
 }
+
+const platformSuffix = (distro: Distro) =>
+  distro.pushTarget
+    ? { full: distro.pushTarget.platform, short: distro.pushTarget.platform }
+    : null;
 
 export const DistroTable = ({
   distros,
@@ -49,6 +60,7 @@ export const DistroTable = ({
   onDelete,
   onRestart,
   onSetStatus,
+  onSetPlatformStatus,
 }: Props) => {
   const { state } = useApp();
   const catalog = state.paramsCatalog;
@@ -84,6 +96,11 @@ export const DistroTable = ({
     closeMenu();
   };
 
+  const handleSetPlatformStatus = (status: PlatformStatus) => {
+    if (activeDistro) onSetPlatformStatus(activeDistro, status);
+    closeMenu();
+  };
+
   if (distros.length === 0) {
     return (
       <Typography
@@ -103,7 +120,8 @@ export const DistroTable = ({
         <TableHead>
           <TableRow>
             <TableCell>Name</TableCell>
-            <TableCell sx={{ minWidth: 180 }}>Status</TableCell>
+            <TableCell sx={{ minWidth: 180 }}>Transcode Status</TableCell>
+            <TableCell sx={{ minWidth: 150 }}>Platform Status</TableCell>
             <TableCell>Distribution Tag</TableCell>
             <TableCell align="right">Actions</TableCell>
           </TableRow>
@@ -120,7 +138,13 @@ export const DistroTable = ({
                   </Typography>
                 </TableCell>
                 <TableCell sx={{ whiteSpace: "nowrap" }}>
-                  <DistroStatusChip status={d.status} pub={pub} />
+                  <StatusChip {...STATUS_META[d.status]} suffix={pub} />
+                </TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                  <StatusChip
+                    {...PLATFORM_STATUS_META[d.platformStatus]}
+                    suffix={platformSuffix(d)}
+                  />
                 </TableCell>
                 <TableCell sx={{ maxWidth: 540 }}>
                   <Typography
@@ -201,7 +225,7 @@ export const DistroTable = ({
         <Divider />
         <ListItemText
           sx={{ px: 2, py: 0.5, m: 0 }}
-          primary="Set status (prototype)"
+          primary="Set transcode status (prototype)"
           primaryTypographyProps={{
             variant: "overline",
             color: "text.secondary",
@@ -213,7 +237,25 @@ export const DistroTable = ({
             selected={activeDistro?.status === status}
             onClick={() => handleSetStatus(status)}
           >
-            <DistroStatusChip status={status} />
+            <StatusChip {...STATUS_META[status]} />
+          </MenuItem>
+        ))}
+        <Divider />
+        <ListItemText
+          sx={{ px: 2, py: 0.5, m: 0 }}
+          primary="Set platform status (prototype)"
+          primaryTypographyProps={{
+            variant: "overline",
+            color: "text.secondary",
+          }}
+        />
+        {PLATFORM_STATUS_ORDER.map((status) => (
+          <MenuItem
+            key={status}
+            selected={activeDistro?.platformStatus === status}
+            onClick={() => handleSetPlatformStatus(status)}
+          >
+            <StatusChip {...PLATFORM_STATUS_META[status]} />
           </MenuItem>
         ))}
         <Divider />

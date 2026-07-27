@@ -2,17 +2,21 @@ import {
   Autocomplete,
   Box,
   Button,
+  Checkbox,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   Divider,
+  FormControlLabel,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DialogHeader } from "./DialogHeader";
+import { useApp } from "../state/AppContext";
+import { PLATFORM_STATUS_META } from "../lib/platformStatus";
 import {
   PUSH_PLATFORMS,
   fetchPlatformAdvertisers,
@@ -22,22 +26,20 @@ import {
 
 interface Props {
   open: boolean;
-  /** How many distribution tags will be pushed — the whole list, for now. */
-  tagCount: number;
   onClose: () => void;
-  onSaved?: (message: string) => void;
+  /** Fires the push: the selected distro ids plus the chosen destination. */
+  onPush: (ids: string[], platformName: string, advertiserName: string) => void;
 }
 
-export const PushTagsDialog = ({
-  open,
-  tagCount,
-  onClose,
-  onSaved,
-}: Props) => {
+export const PushTagsDialog = ({ open, onClose, onPush }: Props) => {
+  const { state } = useApp();
+  const distros = state.distros;
+
   const [platform, setPlatform] = useState<PushPlatform | null>(null);
   const [advertiser, setAdvertiser] = useState<PlatformAdvertiser | null>(null);
   const [advertisers, setAdvertisers] = useState<PlatformAdvertiser[]>([]);
   const [loadingAdvertisers, setLoadingAdvertisers] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -45,7 +47,9 @@ export const PushTagsDialog = ({
     setAdvertiser(null);
     setAdvertisers([]);
     setLoadingAdvertisers(false);
-  }, [open]);
+    // Default to pushing everything; the user deselects what they want to hold back.
+    setSelectedIds(distros.map((d) => d.id));
+  }, [open, distros]);
 
   // Advertisers are platform-scoped, so re-fetch whenever the platform changes.
   // `stale` guards against a slow response for a platform the user has already
@@ -73,13 +77,31 @@ export const PushTagsDialog = ({
     setAdvertiser(null);
   };
 
-  const canPush = Boolean(platform && advertiser);
+  const selectedCount = selectedIds.length;
+  const allSelected = distros.length > 0 && selectedCount === distros.length;
+  const someSelected = selectedCount > 0 && !allSelected;
+
+  const toggle = (id: string) =>
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+
+  const toggleAll = () =>
+    setSelectedIds(allSelected ? [] : distros.map((d) => d.id));
+
+  const canPush = Boolean(platform && advertiser && selectedCount > 0);
+
+  const pushLabel = useMemo(
+    () =>
+      selectedCount > 0
+        ? `Push ${selectedCount} Tag${selectedCount === 1 ? "" : "s"}`
+        : "Push Tags",
+    [selectedCount],
+  );
 
   const handlePush = () => {
-    if (!platform || !advertiser) return;
-    onSaved?.(
-      `Pushed ${tagCount} tag${tagCount === 1 ? "" : "s"} to ${platform.name} — ${advertiser.name}`,
-    );
+    if (!platform || !advertiser || selectedCount === 0) return;
+    onPush(selectedIds, platform.name, advertiser.name);
     onClose();
   };
 
@@ -102,9 +124,9 @@ export const PushTagsDialog = ({
       <DialogContent sx={{ px: 4, py: 3 }}>
         <Stack spacing={3}>
           <Typography variant="body2" color="text.secondary">
-            Pushing <strong>{tagCount}</strong> distribution tag
-            {tagCount === 1 ? "" : "s"} to the selected platform. Advertisers are
-            specific to each platform, so pick the platform first.
+            Pick the platform and advertiser, then choose which distribution tags
+            to push. Advertisers are specific to each platform, so pick the
+            platform first.
           </Typography>
 
           <Autocomplete
@@ -162,6 +184,70 @@ export const PushTagsDialog = ({
               />
             )}
           />
+
+          <Box>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              sx={{ mb: 0.5 }}
+            >
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={allSelected}
+                    indeterminate={someSelected}
+                    onChange={toggleAll}
+                  />
+                }
+                label={<Typography variant="body2">Select all</Typography>}
+              />
+              <Typography variant="caption" color="text.secondary">
+                {selectedCount} of {distros.length} selected
+              </Typography>
+            </Stack>
+            <Box
+              sx={{
+                border: 1,
+                borderColor: "divider",
+                borderRadius: 1,
+                maxHeight: 240,
+                overflowY: "auto",
+                px: 1.5,
+                py: 1,
+              }}
+            >
+              <Stack spacing={0.5}>
+                {distros.map((d) => (
+                  <Stack
+                    key={d.id}
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                  >
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={selectedIds.includes(d.id)}
+                          onChange={() => toggle(d.id)}
+                        />
+                      }
+                      label={<Typography variant="body2">{d.name}</Typography>}
+                    />
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ pl: 1, whiteSpace: "nowrap" }}
+                    >
+                      {PLATFORM_STATUS_META[d.platformStatus].label}
+                    </Typography>
+                  </Stack>
+                ))}
+              </Stack>
+            </Box>
+          </Box>
         </Stack>
       </DialogContent>
       <Divider />
@@ -175,7 +261,7 @@ export const PushTagsDialog = ({
           disabled={!canPush}
           sx={{ color: canPush ? "primary.main" : "text.disabled" }}
         >
-          Push Tags
+          {pushLabel}
         </Button>
       </DialogActions>
     </Dialog>

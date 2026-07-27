@@ -1,10 +1,16 @@
 import { Box, Button, Snackbar, Stack, Typography } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../state/AppContext";
-import type { Distro, DistroStatus, TranscodingConfig } from "../types";
+import type {
+  Distro,
+  DistroStatus,
+  PlatformStatus,
+  TranscodingConfig,
+} from "../types";
 import { buildDistroUrl } from "../lib/tagBuilder";
 import { downloadCsv } from "../lib/csvExport";
 import { RESTART_SIMULATION_MS, STATUS_META } from "../lib/distroStatus";
+import { PLATFORM_STATUS_META } from "../lib/platformStatus";
 import {
   describeTranscoding,
   transcodeLandingStatus,
@@ -17,8 +23,14 @@ import { SectionHeader } from "./SectionHeader";
 import { useConfirm } from "./ConfirmDialog";
 
 export const DistrosSection = () => {
-  const { state, removeDistro, setDistroStatus, setAllDistrosStatus, setTranscoding } =
-    useApp();
+  const {
+    state,
+    removeDistro,
+    setDistroStatus,
+    setAllDistrosStatus,
+    setDistrosPlatformStatus,
+    setTranscoding,
+  } = useApp();
   const { confirm, confirmDialog } = useConfirm();
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Distro | null>(null);
@@ -72,6 +84,33 @@ export const DistrosSection = () => {
   const handleSetStatus = (distro: Distro, status: DistroStatus) => {
     setDistroStatus(distro.id, status);
     setSnack(`"${distro.name}" set to ${STATUS_META[status].label}`);
+  };
+
+  // Push the selected distros: they go Pushing, then land Success (optimistic —
+  // the backend reports the real outcome once the push API is live; use the ⋯
+  // "Set platform status" affordance to demo an Error/rejection meanwhile).
+  const handlePush = (
+    ids: string[],
+    platformName: string,
+    advertiserName: string,
+  ) => {
+    const target = { platform: platformName, advertiser: advertiserName };
+    setDistrosPlatformStatus(ids, "pushing", target);
+    setSnack(`Pushing ${ids.length} tag(s) to ${platformName}…`);
+    const timer = window.setTimeout(() => {
+      setDistrosPlatformStatus(ids, "success");
+      setSnack(
+        `Pushed ${ids.length} tag(s) to ${platformName} — ${advertiserName}`,
+      );
+    }, RESTART_SIMULATION_MS);
+    restartTimers.current.push(timer);
+  };
+
+  const handleSetPlatformStatus = (distro: Distro, status: PlatformStatus) => {
+    setDistrosPlatformStatus([distro.id], status);
+    setSnack(
+      `"${distro.name}" platform status set to ${PLATFORM_STATUS_META[status].label}`,
+    );
   };
 
   const handleApplyTranscoding = (config: TranscodingConfig) => {
@@ -165,6 +204,7 @@ export const DistrosSection = () => {
         onDelete={handleDelete}
         onRestart={handleRestart}
         onSetStatus={handleSetStatus}
+        onSetPlatformStatus={handleSetPlatformStatus}
       />
       <TagEditorDialog
         open={addOpen}
@@ -179,9 +219,8 @@ export const DistrosSection = () => {
       />
       <PushTagsDialog
         open={pushOpen}
-        tagCount={state.distros.length}
         onClose={() => setPushOpen(false)}
-        onSaved={(message) => setSnack(message)}
+        onPush={handlePush}
       />
       <TranscodingSettingsDialog
         open={transcodeOpen}

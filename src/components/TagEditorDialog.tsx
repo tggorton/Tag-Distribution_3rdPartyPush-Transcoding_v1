@@ -205,6 +205,7 @@ export const TagEditorDialog = ({
         // A new distro inherits the line-item's current transcode state: Default
         // baseline, a platform preset (Live), or a custom override (Out of Spec).
         status: transcodeLandingStatus(state.transcoding, state.transcodePresets),
+        platformStatus: "notPushed",
       };
       addDistro(distro);
       onSaved?.(`Added "${distro.name}"`);

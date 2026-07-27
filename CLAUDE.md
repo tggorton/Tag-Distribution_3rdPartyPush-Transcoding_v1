@@ -28,9 +28,18 @@ Key domain distinctions:
   don't narrow the naming to "DSP". Advertisers are platform-scoped: each platform
   returns its own set, which is why the Advertiser dropdown depends on the Platform one.
 - "Distro" always means a distribution *tag*, never a DSP/SSP. Say **Platform** for that.
-- A distro's **status** ([src/lib/distroStatus.ts](src/lib/distroStatus.ts)) reflects its
-  creative/transcoding pipeline: `default` (green ring), `live` (green), `processing`
-  (amber), `error` (red), `outOfSpec` (orange, `palette.outOfSpec`), `inactive` (grey).
+- Distros carry **two independent statuses**, one column each, both rendered by the shared
+  [StatusChip](src/components/StatusChip.tsx) (dot + label + optional suffix):
+  - **Transcoding Status** (`Distro.status`, [src/lib/distroStatus.ts](src/lib/distroStatus.ts))
+    — the creative/transcoding pipeline.
+  - **Platform Status** (`Distro.platformStatus`, [src/lib/platformStatus.ts](src/lib/platformStatus.ts))
+    — delivery to a push platform: `notPushed` (grey ring), `pushing` (amber), `success`
+    (green), `error` (red). Driven by Push Tags to Platform; the per-distro `pushTarget`
+    supplies the chip suffix ("Success: Nexxen"). Each has a "Set … status (prototype)"
+    block in the ⋯ menu (prototype stand-ins; the backend owns both lifecycles).
+- The transcoding status ([src/lib/distroStatus.ts](src/lib/distroStatus.ts)) values are
+  `default` (green ring), `live` (green), `processing` (amber), `error` (red), `outOfSpec`
+  (orange, `palette.outOfSpec`), `inactive` (grey).
   **The backend owns this lifecycle** — the UI reflects it and offers a restart.
   - `default` vs `live`: both green and both serve, but `default` means "running on the
     video baseline, no platform preset officially applied," while `live` means "conformed

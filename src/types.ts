@@ -69,6 +69,18 @@ export type DistroStatus =
   | "outOfSpec"
   | "inactive";
 
+/**
+ * Delivery status of pushing a distro's tag to a platform (Push Tags to
+ * Platform). Independent of transcoding — a distro can be transcoded `live` yet
+ * never pushed, or pushed and rejected.
+ *
+ *   notPushed  grey ring — never pushed to a platform
+ *   pushing    amber     — push in flight
+ *   success    green     — the platform accepted the tag
+ *   error      red       — the push failed or the platform rejected it
+ */
+export type PlatformStatus = "notPushed" | "pushing" | "success" | "error";
+
 export interface Distro {
   id: string;
   name: string;
@@ -81,7 +93,12 @@ export interface Distro {
   distributionId: number;
   lineItemId: number;
   createdAt: string;
+  /** Transcoding / creative-pipeline status. */
   status: DistroStatus;
+  /** Delivery-to-platform status (Push Tags to Platform). */
+  platformStatus: PlatformStatus;
+  /** Where this distro was last pushed, for the platform-status chip suffix. */
+  pushTarget?: { platform: string; advertiser: string };
 }
 
 export interface ParamDef {

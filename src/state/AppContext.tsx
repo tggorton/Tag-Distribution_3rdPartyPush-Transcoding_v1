@@ -14,6 +14,7 @@ import type {
   ParamDef,
   ParamFamilyKey,
   ParamsCatalog,
+  PlatformStatus,
   RegionDef,
   Role,
   Template,
@@ -23,6 +24,7 @@ import type {
 import { seedRegions, seedTemplates } from "./seedData";
 import { SEED_PARAMS_CATALOG } from "../lib/paramCatalog";
 import { DEFAULT_DISTRO_STATUS } from "../lib/distroStatus";
+import { DEFAULT_PLATFORM_STATUS } from "../lib/platformStatus";
 import {
   DEFAULT_TRANSCODING,
   SEED_TRANSCODE_PRESETS,
@@ -51,6 +53,12 @@ type Action =
   | { type: "removeDistro"; id: string }
   | { type: "setDistroStatus"; id: string; status: DistroStatus }
   | { type: "setAllDistrosStatus"; status: DistroStatus }
+  | {
+      type: "setDistrosPlatformStatus";
+      ids: string[];
+      status: PlatformStatus;
+      target?: { platform: string; advertiser: string };
+    }
   | { type: "setTranscoding"; config: TranscodingConfig }
   | { type: "addTranscodePreset"; preset: TranscodePreset }
   | { type: "updateTranscodePreset"; preset: TranscodePreset }
@@ -105,6 +113,20 @@ const reducer = (state: AppState, action: Action): AppState => {
         ...state,
         distros: state.distros.map((d) => ({ ...d, status: action.status })),
       };
+    case "setDistrosPlatformStatus": {
+      const idSet = new Set(action.ids);
+      return {
+        ...state,
+        distros: state.distros.map((d) => {
+          if (!idSet.has(d.id)) return d;
+          // Explicit target wins; resetting to notPushed clears any prior target.
+          const pushTarget =
+            action.target ??
+            (action.status === "notPushed" ? undefined : d.pushTarget);
+          return { ...d, platformStatus: action.status, pushTarget };
+        }),
+      };
+    }
     case "setTranscoding":
       return { ...state, transcoding: action.config };
     case "addTranscodePreset":
@@ -207,6 +229,11 @@ interface AppContextValue {
   removeDistro: (id: string) => void;
   setDistroStatus: (id: string, status: DistroStatus) => void;
   setAllDistrosStatus: (status: DistroStatus) => void;
+  setDistrosPlatformStatus: (
+    ids: string[],
+    status: PlatformStatus,
+    target?: { platform: string; advertiser: string },
+  ) => void;
   setTranscoding: (config: TranscodingConfig) => void;
   addTranscodePreset: (preset: TranscodePreset) => void;
   updateTranscodePreset: (preset: TranscodePreset) => void;
@@ -256,11 +283,16 @@ const migrateCustomFields = <T extends { customKeyValues: CustomKeyValue[] }>(
  * distro doesn't come back with a status that's no longer in the union.
  */
 const migrateDistroStatus = (distro: Distro): Distro => {
-  if (!distro.status) return { ...distro, status: DEFAULT_DISTRO_STATUS };
-  if ((distro.status as string) === "cold") {
-    return { ...distro, status: "inactive" };
+  let next = distro;
+  if (!next.status) next = { ...next, status: DEFAULT_DISTRO_STATUS };
+  else if ((next.status as string) === "cold") {
+    next = { ...next, status: "inactive" };
   }
-  return distro;
+  // Distros persisted before Platform Status existed default to notPushed.
+  if (!next.platformStatus) {
+    next = { ...next, platformStatus: DEFAULT_PLATFORM_STATUS };
+  }
+  return next;
 };
 
 const ensureCatalog = (raw: ParamsCatalog | undefined): ParamsCatalog => {
@@ -353,6 +385,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         dispatch({ type: "setDistroStatus", id, status }),
       setAllDistrosStatus: (status) =>
         dispatch({ type: "setAllDistrosStatus", status }),
+      setDistrosPlatformStatus: (ids, status, target) =>
+        dispatch({ type: "setDistrosPlatformStatus", ids, status, target }),
       setTranscoding: (config) => dispatch({ type: "setTranscoding", config }),
       addTranscodePreset: (preset) =>
         dispatch({ type: "addTranscodePreset", preset }),
