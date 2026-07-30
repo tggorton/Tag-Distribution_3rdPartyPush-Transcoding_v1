@@ -33,6 +33,7 @@ import type {
 import { buildTagString } from "../lib/tagBuilder";
 import { newId } from "../lib/ids";
 import { transcodeLandingStatus } from "../lib/transcodePresets";
+import { platformForFamily } from "../lib/pushTargets";
 import { isVisibleForCurrentAdvertiser } from "../lib/advertisers";
 import { useApp } from "../state/AppContext";
 import { TagPreview } from "./TagPreview";
@@ -82,6 +83,9 @@ interface Props {
   editingDistro?: Distro | null;
   onClose: () => void;
   onSaved?: (message: string) => void;
+  /** Add mode only: create the distro and hand it to the push flow, locked to
+   *  the tag's platform (its family). Omit to hide the "Add + Push" button. */
+  onAddAndPush?: (distro: Distro) => void;
 }
 
 export const TagEditorDialog = ({
@@ -89,6 +93,7 @@ export const TagEditorDialog = ({
   editingDistro,
   onClose,
   onSaved,
+  onAddAndPush,
 }: Props) => {
   const { state, addDistro, updateDistro, nextDistributionId } = useApp();
   const catalog = state.paramsCatalog;
@@ -176,6 +181,24 @@ export const TagEditorDialog = ({
     [state.templates],
   );
 
+  const buildNewDistro = (): Distro => ({
+    id: newId(),
+    name: form.name.trim(),
+    templateId: templateId || "manual",
+    family: form.family,
+    region: form.region,
+    selectedParams: form.selectedParams,
+    selectedCreativeParams: form.selectedCreativeParams,
+    customKeyValues: form.customKeyValues,
+    distributionId: nextDistributionId(),
+    lineItemId: 4387,
+    createdAt: new Date().toISOString(),
+    // A new distro inherits the line-item's current transcode state: Default
+    // baseline, a platform preset (Live), or a custom override (Out of Spec).
+    status: transcodeLandingStatus(state.transcoding, state.transcodePresets),
+    platformStatus: "notPushed",
+  });
+
   const handleSubmit = () => {
     if (!requireName()) return;
     if (isEditMode && editingDistro) {
@@ -190,28 +213,24 @@ export const TagEditorDialog = ({
       });
       onSaved?.(`Updated "${form.name.trim()}"`);
     } else {
-      const distro: Distro = {
-        id: newId(),
-        name: form.name.trim(),
-        templateId: templateId || "manual",
-        family: form.family,
-        region: form.region,
-        selectedParams: form.selectedParams,
-        selectedCreativeParams: form.selectedCreativeParams,
-        customKeyValues: form.customKeyValues,
-        distributionId: nextDistributionId(),
-        lineItemId: 4387,
-        createdAt: new Date().toISOString(),
-        // A new distro inherits the line-item's current transcode state: Default
-        // baseline, a platform preset (Live), or a custom override (Out of Spec).
-        status: transcodeLandingStatus(state.transcoding, state.transcodePresets),
-        platformStatus: "notPushed",
-      };
+      const distro = buildNewDistro();
       addDistro(distro);
       onSaved?.(`Added "${distro.name}"`);
     }
     onClose();
   };
+
+  // Add the tag, then hand it straight to the push flow (locked to its platform).
+  // No "Added" toast here — the push dialog is the feedback.
+  const handleAddAndPush = () => {
+    if (!requireName()) return;
+    const distro = buildNewDistro();
+    addDistro(distro);
+    onAddAndPush?.(distro);
+    onClose();
+  };
+
+  const pushPlatform = platformForFamily(form.family);
 
   return (
     <Dialog
@@ -344,13 +363,26 @@ export const TagEditorDialog = ({
         </Stack>
       </DialogContent>
       <Divider />
-      <DialogActions sx={{ px: 3, py: 1.5 }}>
+      <DialogActions sx={{ px: 3, py: 1.5, gap: 0.5 }}>
         <Button onClick={onClose} color="primary">
           Cancel
         </Button>
+        <Box sx={{ flex: 1 }} />
         <Button onClick={handleSubmit} sx={{ color: "primary.main" }}>
           {submitLabel}
         </Button>
+        {!isEditMode && onAddAndPush && pushPlatform && (
+          <Tooltip title={`Adds the tag, then opens push locked to ${pushPlatform.name}`}>
+            <Button
+              onClick={handleAddAndPush}
+              variant="contained"
+              color="primary"
+              sx={{ borderRadius: 1 }}
+            >
+              Add + Push
+            </Button>
+          </Tooltip>
+        )}
       </DialogActions>
       {isAdmin && showTemplateSelector && (
         <ManageTemplatesDialog

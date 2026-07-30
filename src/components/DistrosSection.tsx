@@ -35,6 +35,12 @@ export const DistrosSection = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Distro | null>(null);
   const [pushOpen, setPushOpen] = useState(false);
+  // When set, the push dialog opens scoped to one just-added tag with its
+  // platform locked (the "Add + Push" flow). Null = a normal, unscoped push.
+  const [pushScope, setPushScope] = useState<{
+    platformId: string;
+    selectedIds: string[];
+  } | null>(null);
   const [transcodeOpen, setTranscodeOpen] = useState(false);
   const [snack, setSnack] = useState<string | null>(null);
 
@@ -106,6 +112,23 @@ export const DistrosSection = () => {
     restartTimers.current.push(timer);
   };
 
+  const openPush = () => {
+    setPushScope(null);
+    setPushOpen(true);
+  };
+
+  const closePush = () => {
+    setPushOpen(false);
+    setPushScope(null);
+  };
+
+  // "Add + Push": the tag is already created; open push scoped to it, platform
+  // locked to the tag's family.
+  const handleAddAndPush = (distro: Distro) => {
+    setPushScope({ platformId: distro.family, selectedIds: [distro.id] });
+    setPushOpen(true);
+  };
+
   const handleSetPlatformStatus = (distro: Distro, status: PlatformStatus) => {
     setDistrosPlatformStatus([distro.id], status);
     setSnack(
@@ -173,7 +196,7 @@ export const DistrosSection = () => {
               variant="outlined"
               color="primary"
               size="small"
-              onClick={() => setPushOpen(true)}
+              onClick={openPush}
               disabled={!hasDistros}
             >
               Push Tags to Platform
@@ -210,6 +233,7 @@ export const DistrosSection = () => {
         open={addOpen}
         onClose={() => setAddOpen(false)}
         onSaved={(message) => setSnack(message)}
+        onAddAndPush={handleAddAndPush}
       />
       <TagEditorDialog
         open={Boolean(editing)}
@@ -219,8 +243,11 @@ export const DistrosSection = () => {
       />
       <PushTagsDialog
         open={pushOpen}
-        onClose={() => setPushOpen(false)}
+        onClose={closePush}
         onPush={handlePush}
+        initialPlatformId={pushScope?.platformId ?? null}
+        initialSelectedIds={pushScope?.selectedIds}
+        lockPlatform={pushScope !== null}
       />
       <TranscodingSettingsDialog
         open={transcodeOpen}

@@ -27,6 +27,16 @@ export const PUSH_PLATFORMS: PushPlatform[] = [
   { id: "ttd", name: "The Trade Desk" },
 ];
 
+/**
+ * A tag is built for one platform (its `family`) and can only be pushed there —
+ * a Nexxen tag → Nexxen, a TTD tag → The Trade Desk. Platform ids are kept equal
+ * to the `TemplateFamily` values so the mapping is a direct lookup; future
+ * platforms come along for free as their family is added. Returns undefined for
+ * a family with no matching platform (i.e. not pushable).
+ */
+export const platformForFamily = (family: string): PushPlatform | undefined =>
+  PUSH_PLATFORMS.find((p) => p.id === family);
+
 const MOCK_LATENCY_MS = 450;
 const MOCK_ADVERTISER_COUNT = 10;
 

@@ -20,6 +20,7 @@ import { PLATFORM_STATUS_META } from "../lib/platformStatus";
 import {
   PUSH_PLATFORMS,
   fetchPlatformAdvertisers,
+  platformForFamily,
   type PlatformAdvertiser,
   type PushPlatform,
 } from "../lib/pushTargets";
@@ -29,9 +30,22 @@ interface Props {
   onClose: () => void;
   /** Fires the push: the selected distro ids plus the chosen destination. */
   onPush: (ids: string[], platformName: string, advertiserName: string) => void;
+  /** Pre-select a platform on open (used by "Add + Push"). */
+  initialPlatformId?: string | null;
+  /** Pre-select these tags on open (else the chosen platform's tags are selected). */
+  initialSelectedIds?: string[];
+  /** Lock the platform picker — the destination is fixed by the tag. */
+  lockPlatform?: boolean;
 }
 
-export const PushTagsDialog = ({ open, onClose, onPush }: Props) => {
+export const PushTagsDialog = ({
+  open,
+  onClose,
+  onPush,
+  initialPlatformId,
+  initialSelectedIds,
+  lockPlatform = false,
+}: Props) => {
   const { state } = useApp();
   const distros = state.distros;
 
@@ -43,19 +57,31 @@ export const PushTagsDialog = ({ open, onClose, onPush }: Props) => {
 
   useEffect(() => {
     if (!open) return;
-    setPlatform(null);
+    const initPlatform = initialPlatformId
+      ? PUSH_PLATFORMS.find((p) => p.id === initialPlatformId) ?? null
+      : null;
+    setPlatform(initPlatform);
     setAdvertiser(null);
     setAdvertisers([]);
     setLoadingAdvertisers(false);
-    // Default to pushing everything; the user deselects what they want to hold back.
-    setSelectedIds(distros.map((d) => d.id));
-  }, [open, distros]);
+    // No platform yet → nothing selected; choosing a platform selects its tags.
+    // A caller can override with an explicit initial selection (Add + Push).
+    setSelectedIds(
+      initialSelectedIds ??
+        (initPlatform
+          ? distros.filter((d) => d.family === initPlatform.id).map((d) => d.id)
+          : []),
+    );
+  }, [open, distros, initialPlatformId, initialSelectedIds]);
 
-  // Advertisers are platform-scoped, so re-fetch whenever the platform changes.
-  // `stale` guards against a slow response for a platform the user has already
-  // switched away from landing after a faster one.
+  // Advertisers are platform-scoped, so (re)fetch whenever the platform changes
+  // OR the dialog opens. The `open` dep matters for "Add + Push": the platform is
+  // set on open and may be the same object as last time (PUSH_PLATFORMS is a
+  // stable constant), so a platform-only dep wouldn't refire and the list — just
+  // cleared on open — would stay empty. `stale` guards against a slow response
+  // for a platform the user has already switched away from.
   useEffect(() => {
-    if (!platform) {
+    if (!open || !platform) {
       setAdvertisers([]);
       return;
     }
@@ -69,16 +95,32 @@ export const PushTagsDialog = ({ open, onClose, onPush }: Props) => {
     return () => {
       stale = true;
     };
-  }, [platform]);
+  }, [open, platform]);
+
+  // A tag can only be pushed to the platform it was built for (its family). The
+  // platform picker always lists every platform; choosing one auto-selects that
+  // platform's tags and disables the rest, so the user rarely touches the
+  // checklist — they just switch platform to push a different set.
+  const isEligible = (family: string) => platform !== null && family === platform.id;
+  const eligibleDistros = useMemo(
+    () => (platform ? distros.filter((d) => d.family === platform.id) : []),
+    [distros, platform],
+  );
 
   const handlePlatformChange = (next: PushPlatform | null) => {
     setPlatform(next);
     // The old advertiser belongs to the old platform — never carry it across.
     setAdvertiser(null);
+    // Auto-select every tag built for the chosen platform (deselect the rest).
+    // The user can still uncheck individual tags for a partial push.
+    setSelectedIds(
+      next ? distros.filter((d) => d.family === next.id).map((d) => d.id) : [],
+    );
   };
 
   const selectedCount = selectedIds.length;
-  const allSelected = distros.length > 0 && selectedCount === distros.length;
+  const allSelected =
+    eligibleDistros.length > 0 && selectedCount === eligibleDistros.length;
   const someSelected = selectedCount > 0 && !allSelected;
 
   const toggle = (id: string) =>
@@ -87,7 +129,7 @@ export const PushTagsDialog = ({ open, onClose, onPush }: Props) => {
     );
 
   const toggleAll = () =>
-    setSelectedIds(allSelected ? [] : distros.map((d) => d.id));
+    setSelectedIds(allSelected ? [] : eligibleDistros.map((d) => d.id));
 
   const canPush = Boolean(platform && advertiser && selectedCount > 0);
 
@@ -124,9 +166,11 @@ export const PushTagsDialog = ({ open, onClose, onPush }: Props) => {
       <DialogContent sx={{ px: 4, py: 3 }}>
         <Stack spacing={3}>
           <Typography variant="body2" color="text.secondary">
-            Pick the platform and advertiser, then choose which distribution tags
-            to push. Advertisers are specific to each platform, so pick the
-            platform first.
+            A tag can only be pushed to the platform it was built for — a Nexxen
+            tag to Nexxen, a TTD tag to The Trade Desk. Pick any platform and its
+            tags are selected automatically (the others are disabled); switch
+            platforms to push a different set. One push goes to a single platform +
+            advertiser.
           </Typography>
 
           <Autocomplete
@@ -135,6 +179,7 @@ export const PushTagsDialog = ({ open, onClose, onPush }: Props) => {
             options={PUSH_PLATFORMS}
             getOptionLabel={(opt) => opt.name}
             isOptionEqualToValue={(opt, val) => opt.id === val.id}
+            disabled={lockPlatform}
             fullWidth
             renderInput={(params) => (
               <TextField
@@ -142,6 +187,11 @@ export const PushTagsDialog = ({ open, onClose, onPush }: Props) => {
                 label="Platform"
                 placeholder="Select a platform — start typing to search"
                 InputLabelProps={{ shrink: true }}
+                helperText={
+                  lockPlatform
+                    ? "Locked to this tag's platform"
+                    : "Selecting a platform selects its tags"
+                }
               />
             )}
           />
@@ -193,6 +243,7 @@ export const PushTagsDialog = ({ open, onClose, onPush }: Props) => {
               sx={{ mb: 0.5 }}
             >
               <FormControlLabel
+                disabled={!platform}
                 control={
                   <Checkbox
                     size="small"
@@ -204,7 +255,9 @@ export const PushTagsDialog = ({ open, onClose, onPush }: Props) => {
                 label={<Typography variant="body2">Select all</Typography>}
               />
               <Typography variant="caption" color="text.secondary">
-                {selectedCount} of {distros.length} selected
+                {platform
+                  ? `${selectedCount} of ${eligibleDistros.length} ${platform.name} tag${eligibleDistros.length === 1 ? "" : "s"} selected`
+                  : "Pick a platform to select its tags"}
               </Typography>
             </Stack>
             <Box
@@ -219,32 +272,38 @@ export const PushTagsDialog = ({ open, onClose, onPush }: Props) => {
               }}
             >
               <Stack spacing={0.5}>
-                {distros.map((d) => (
-                  <Stack
-                    key={d.id}
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                  >
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={selectedIds.includes(d.id)}
-                          onChange={() => toggle(d.id)}
-                        />
-                      }
-                      label={<Typography variant="body2">{d.name}</Typography>}
-                    />
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ pl: 1, whiteSpace: "nowrap" }}
+                {distros.map((d) => {
+                  const eligible = isEligible(d.family);
+                  const tagPlatform = platformForFamily(d.family);
+                  return (
+                    <Stack
+                      key={d.id}
+                      direction="row"
+                      alignItems="center"
+                      justifyContent="space-between"
                     >
-                      {PLATFORM_STATUS_META[d.platformStatus].label}
-                    </Typography>
-                  </Stack>
-                ))}
+                      <FormControlLabel
+                        disabled={!eligible}
+                        control={
+                          <Checkbox
+                            size="small"
+                            checked={selectedIds.includes(d.id)}
+                            onChange={() => toggle(d.id)}
+                          />
+                        }
+                        label={<Typography variant="body2">{d.name}</Typography>}
+                      />
+                      <Typography
+                        variant="caption"
+                        color={eligible ? "text.secondary" : "text.disabled"}
+                        sx={{ pl: 1, whiteSpace: "nowrap" }}
+                      >
+                        {tagPlatform?.name ?? "—"} ·{" "}
+                        {PLATFORM_STATUS_META[d.platformStatus].label}
+                      </Typography>
+                    </Stack>
+                  );
+                })}
               </Stack>
             </Box>
           </Box>
