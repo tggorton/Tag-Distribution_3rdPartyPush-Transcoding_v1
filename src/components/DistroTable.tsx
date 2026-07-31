@@ -19,18 +19,12 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { useState, type MouseEvent } from "react";
 import type { Distro, DistroStatus, PlatformStatus } from "../types";
 import { buildDistroUrl } from "../lib/tagBuilder";
-import {
-  STATUS_META,
-  STATUS_ORDER,
-  isRestartable,
-  restartActionLabel,
-  restartDisabledReason,
-} from "../lib/distroStatus";
+import { STATUS_META, STATUS_ORDER, isRestartable } from "../lib/distroStatus";
 import {
   PLATFORM_STATUS_META,
   PLATFORM_STATUS_ORDER,
 } from "../lib/platformStatus";
-import { activePublisher } from "../lib/transcodePresets";
+import { transcodePublisher } from "../lib/transcodePresets";
 import { useApp } from "../state/AppContext";
 import { StatusChip } from "./StatusChip";
 
@@ -65,9 +59,7 @@ export const DistroTable = ({
   const { state } = useApp();
   const catalog = state.paramsCatalog;
   const regions = state.regions;
-  // All distros share the line-item's transcoding config, so the publisher is
-  // the same for every row. Null on the Default baseline (no publisher to name).
-  const pub = activePublisher(state.transcoding, state.transcodePresets);
+  const presets = state.transcodePresets;
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [activeDistro, setActiveDistro] = useState<Distro | null>(null);
 
@@ -129,7 +121,9 @@ export const DistroTable = ({
         <TableBody>
           {distros.map((d) => {
             const url = buildDistroUrl(d, catalog, regions);
-            const restartable = isRestartable(d.status);
+            const restartable = d.transcodes.some((t) =>
+              isRestartable(t.status),
+            );
             return (
               <TableRow key={d.id} hover>
                 <TableCell sx={{ maxWidth: 200 }}>
@@ -137,8 +131,16 @@ export const DistroTable = ({
                     {d.name}
                   </Typography>
                 </TableCell>
-                <TableCell sx={{ whiteSpace: "nowrap" }}>
-                  <StatusChip {...STATUS_META[d.status]} suffix={pub} />
+                <TableCell sx={{ whiteSpace: "nowrap", py: 1 }}>
+                  <Stack spacing={0.5} sx={{ alignItems: "flex-start" }}>
+                    {d.transcodes.map((t, i) => (
+                      <StatusChip
+                        key={i}
+                        {...STATUS_META[t.status]}
+                        suffix={transcodePublisher(t.presetId, presets)}
+                      />
+                    ))}
+                  </Stack>
                 </TableCell>
                 <TableCell sx={{ whiteSpace: "nowrap" }}>
                   <StatusChip
@@ -173,8 +175,8 @@ export const DistroTable = ({
                     <Tooltip
                       title={
                         restartable
-                          ? restartActionLabel(d.status)
-                          : restartDisabledReason(d.status)
+                          ? "Restart the distro's transcodes (retries Error, rebuilds Inactive)"
+                          : "Restart applies when a transcode is Inactive or Error"
                       }
                     >
                       {/* span: a disabled button emits no events, so the Tooltip
@@ -225,7 +227,7 @@ export const DistroTable = ({
         <Divider />
         <ListItemText
           sx={{ px: 2, py: 0.5, m: 0 }}
-          primary="Set transcode status (prototype)"
+          primary="Set transcode status — all (prototype)"
           primaryTypographyProps={{
             variant: "overline",
             color: "text.secondary",
@@ -234,7 +236,9 @@ export const DistroTable = ({
         {STATUS_ORDER.map((status) => (
           <MenuItem
             key={status}
-            selected={activeDistro?.status === status}
+            selected={activeDistro?.transcodes.every(
+              (t) => t.status === status,
+            )}
             onClick={() => handleSetStatus(status)}
           >
             <StatusChip {...STATUS_META[status]} />

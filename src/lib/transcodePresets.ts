@@ -319,6 +319,9 @@ export const DEFAULT_TRANSCODING: TranscodingConfig = {
   settings: { ...DEFAULT_SETTINGS },
 };
 
+/** A fresh line-item applies a single config — the default baseline. */
+export const DEFAULT_TRANSCODINGS: TranscodingConfig[] = [DEFAULT_TRANSCODING];
+
 export const settingsEqual = (
   a: TranscodeSettings,
   b: TranscodeSettings,
@@ -353,23 +356,24 @@ export const transcodeLandingStatus = (
 };
 
 /**
- * The publisher a distro is transcoded for, for the status chip suffix
- * ("Live: Hulu (Disney)"). Returns both the full and compact form so the chip
- * can pick by available width. Null on the Default baseline — no publisher to
- * name, so the chip stays a plain "Default".
+ * The publisher a transcode names, for the status chip suffix ("Live: Hulu
+ * (Disney)"). Returns both the full and compact form so the chip can pick by
+ * available width. Null on the Default baseline — no publisher to name, so the
+ * chip stays a plain "Default".
  */
-export const activePublisher = (
-  config: TranscodingConfig,
+export const transcodePublisher = (
+  presetId: string,
   presets: TranscodePreset[],
 ): { full: string; short: string } | null => {
-  if (config.presetId === DEFAULT_PRESET_ID) return null;
-  const preset = findPreset(presets, config.presetId);
+  if (presetId === DEFAULT_PRESET_ID) return null;
+  const preset = findPreset(presets, presetId);
   if (!preset) return null;
   return { full: preset.name, short: preset.shortName };
 };
 
-/** Short human summary for the section subheading, e.g. "Hulu (modified)". */
-export const describeTranscoding = (
+/**
+ * Short human summary of a config for the modal ("Hulu (modified)"). */
+export const describeConfig = (
   config: TranscodingConfig,
   presets: TranscodePreset[],
 ): string => {
@@ -377,6 +381,15 @@ export const describeTranscoding = (
   const name = preset?.name ?? "Custom";
   return isCustomTranscoding(config, presets) ? `${name} (modified)` : name;
 };
+
+/** Comma-joined summary of the applied configs for the section subheading. */
+export const describeTranscodings = (
+  configs: TranscodingConfig[],
+  presets: TranscodePreset[],
+): string =>
+  configs.length === 0
+    ? "None"
+    : configs.map((c) => describeConfig(c, presets)).join(", ");
 
 /**
  * Backfill any missing fields so a settings sheet always matches the schema, and
@@ -398,14 +411,25 @@ const normalizeSettings = (
   return settings;
 };
 
-export const ensureTranscoding = (
-  raw: TranscodingConfig | undefined,
-): TranscodingConfig => {
-  if (!raw || !raw.settings) return DEFAULT_TRANSCODING;
-  return {
-    presetId: raw.presetId || DEFAULT_PRESET_ID,
-    settings: normalizeSettings(raw.settings),
-  };
+const normalizeConfig = (raw: TranscodingConfig): TranscodingConfig => ({
+  presetId: raw.presetId || DEFAULT_PRESET_ID,
+  settings: normalizeSettings(raw.settings),
+});
+
+/**
+ * Coerce persisted transcoding into the current list shape. Handles the pre-
+ * multi single-config object (wraps it), an empty/missing value (default), and
+ * normalizes each config's settings to the field schema.
+ */
+export const ensureTranscodings = (raw: unknown): TranscodingConfig[] => {
+  const list: TranscodingConfig[] = Array.isArray(raw)
+    ? (raw as TranscodingConfig[])
+    : raw && typeof raw === "object" && "settings" in raw
+      ? [raw as TranscodingConfig]
+      : [];
+  const valid = list.filter((c) => c && c.settings);
+  if (valid.length === 0) return DEFAULT_TRANSCODINGS;
+  return valid.map(normalizeConfig);
 };
 
 /**

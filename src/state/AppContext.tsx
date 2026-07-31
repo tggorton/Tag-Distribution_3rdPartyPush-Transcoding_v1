@@ -11,6 +11,7 @@ import type {
   CustomKeyValue,
   Distro,
   DistroStatus,
+  DistroTranscode,
   ParamDef,
   ParamFamilyKey,
   ParamsCatalog,
@@ -26,9 +27,10 @@ import { SEED_PARAMS_CATALOG } from "../lib/paramCatalog";
 import { DEFAULT_DISTRO_STATUS } from "../lib/distroStatus";
 import { DEFAULT_PLATFORM_STATUS } from "../lib/platformStatus";
 import {
-  DEFAULT_TRANSCODING,
+  DEFAULT_PRESET_ID,
+  DEFAULT_TRANSCODINGS,
   SEED_TRANSCODE_PRESETS,
-  ensureTranscoding,
+  ensureTranscodings,
   ensureTranscodePresets,
 } from "../lib/transcodePresets";
 
@@ -41,7 +43,7 @@ const initialState: AppState = {
   nextDistributionId: 12100,
   paramsCatalog: SEED_PARAMS_CATALOG,
   regions: seedRegions,
-  transcoding: DEFAULT_TRANSCODING,
+  transcoding: DEFAULT_TRANSCODINGS,
   transcodePresets: SEED_TRANSCODE_PRESETS,
 };
 
@@ -51,15 +53,15 @@ type Action =
   | { type: "addDistro"; distro: Distro }
   | { type: "updateDistro"; distro: Distro }
   | { type: "removeDistro"; id: string }
-  | { type: "setDistroStatus"; id: string; status: DistroStatus }
-  | { type: "setAllDistrosStatus"; status: DistroStatus }
+  | { type: "setDistroTranscodes"; id: string; transcodes: DistroTranscode[] }
+  | { type: "setAllDistrosTranscodes"; transcodes: DistroTranscode[] }
   | {
       type: "setDistrosPlatformStatus";
       ids: string[];
       status: PlatformStatus;
       target?: { platform: string; advertiser: string };
     }
-  | { type: "setTranscoding"; config: TranscodingConfig }
+  | { type: "setTranscodings"; configs: TranscodingConfig[] }
   | { type: "addTranscodePreset"; preset: TranscodePreset }
   | { type: "updateTranscodePreset"; preset: TranscodePreset }
   | { type: "deleteTranscodePreset"; id: string }
@@ -101,17 +103,20 @@ const reducer = (state: AppState, action: Action): AppState => {
         ...state,
         distros: state.distros.filter((d) => d.id !== action.id),
       };
-    case "setDistroStatus":
+    case "setDistroTranscodes":
       return {
         ...state,
         distros: state.distros.map((d) =>
-          d.id === action.id ? { ...d, status: action.status } : d,
+          d.id === action.id ? { ...d, transcodes: action.transcodes } : d,
         ),
       };
-    case "setAllDistrosStatus":
+    case "setAllDistrosTranscodes":
       return {
         ...state,
-        distros: state.distros.map((d) => ({ ...d, status: action.status })),
+        distros: state.distros.map((d) => ({
+          ...d,
+          transcodes: action.transcodes,
+        })),
       };
     case "setDistrosPlatformStatus": {
       const idSet = new Set(action.ids);
@@ -127,8 +132,8 @@ const reducer = (state: AppState, action: Action): AppState => {
         }),
       };
     }
-    case "setTranscoding":
-      return { ...state, transcoding: action.config };
+    case "setTranscodings":
+      return { ...state, transcoding: action.configs };
     case "addTranscodePreset":
       return {
         ...state,
@@ -227,14 +232,14 @@ interface AppContextValue {
   addDistro: (distro: Distro) => void;
   updateDistro: (distro: Distro) => void;
   removeDistro: (id: string) => void;
-  setDistroStatus: (id: string, status: DistroStatus) => void;
-  setAllDistrosStatus: (status: DistroStatus) => void;
+  setDistroTranscodes: (id: string, transcodes: DistroTranscode[]) => void;
+  setAllDistrosTranscodes: (transcodes: DistroTranscode[]) => void;
   setDistrosPlatformStatus: (
     ids: string[],
     status: PlatformStatus,
     target?: { platform: string; advertiser: string },
   ) => void;
-  setTranscoding: (config: TranscodingConfig) => void;
+  setTranscodings: (configs: TranscodingConfig[]) => void;
   addTranscodePreset: (preset: TranscodePreset) => void;
   updateTranscodePreset: (preset: TranscodePreset) => void;
   deleteTranscodePreset: (id: string) => void;
@@ -277,18 +282,26 @@ const migrateCustomFields = <T extends { customKeyValues: CustomKeyValue[] }>(
 };
 
 /**
- * Distros persisted before the status column existed have no `status` — treat
- * them as Live, matching the default for newly-created distros. The `cold`
- * status was also renamed to `inactive`; map the legacy value across so a stored
- * distro doesn't come back with a status that's no longer in the union.
+ * Bring a persisted distro up to the current shape:
+ *  - the single `status` field became a `transcodes` list (one entry per applied
+ *    preset). Legacy single status → one transcode, associated with the line-item's
+ *    first preset. The old `cold` value maps to `inactive`.
+ *  - distros persisted before Platform Status existed default to `notPushed`.
  */
-const migrateDistroStatus = (distro: Distro): Distro => {
+const migrateDistroTranscodes = (
+  distro: Distro,
+  firstPresetId: string,
+): Distro => {
   let next = distro;
-  if (!next.status) next = { ...next, status: DEFAULT_DISTRO_STATUS };
-  else if ((next.status as string) === "cold") {
-    next = { ...next, status: "inactive" };
+  const legacy = next as unknown as {
+    status?: string;
+    transcodes?: DistroTranscode[];
+  };
+  if (!Array.isArray(legacy.transcodes)) {
+    let status = (legacy.status as DistroStatus) ?? DEFAULT_DISTRO_STATUS;
+    if ((status as string) === "cold") status = "inactive";
+    next = { ...next, transcodes: [{ presetId: firstPresetId, status }] };
   }
-  // Distros persisted before Platform Status existed default to notPushed.
   if (!next.platformStatus) {
     next = { ...next, platformStatus: DEFAULT_PLATFORM_STATUS };
   }
@@ -344,6 +357,8 @@ const loadFromStorage = (): AppState | null => {
     // We intentionally do NOT re-merge missing built-in templates here so that
     // admin deletions persist across reloads. New users (no localStorage yet)
     // still get the full seed set via `initialState`.
+    const transcoding = ensureTranscodings(parsed.transcoding);
+    const firstPresetId = transcoding[0]?.presetId ?? DEFAULT_PRESET_ID;
     return {
       ...initialState,
       ...parsed,
@@ -353,10 +368,10 @@ const loadFromStorage = (): AppState | null => {
       distros: parsed.distros
         .map(migrateCustomFields)
         .map(migrateEntityRegion)
-        .map(migrateDistroStatus),
+        .map((d) => migrateDistroTranscodes(d, firstPresetId)),
       paramsCatalog: ensureCatalog(parsed.paramsCatalog),
       regions: ensureRegions(parsed.regions),
-      transcoding: ensureTranscoding(parsed.transcoding),
+      transcoding,
       transcodePresets: ensureTranscodePresets(parsed.transcodePresets),
     };
   } catch {
@@ -381,13 +396,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       addDistro: (distro) => dispatch({ type: "addDistro", distro }),
       updateDistro: (distro) => dispatch({ type: "updateDistro", distro }),
       removeDistro: (id) => dispatch({ type: "removeDistro", id }),
-      setDistroStatus: (id, status) =>
-        dispatch({ type: "setDistroStatus", id, status }),
-      setAllDistrosStatus: (status) =>
-        dispatch({ type: "setAllDistrosStatus", status }),
+      setDistroTranscodes: (id, transcodes) =>
+        dispatch({ type: "setDistroTranscodes", id, transcodes }),
+      setAllDistrosTranscodes: (transcodes) =>
+        dispatch({ type: "setAllDistrosTranscodes", transcodes }),
       setDistrosPlatformStatus: (ids, status, target) =>
         dispatch({ type: "setDistrosPlatformStatus", ids, status, target }),
-      setTranscoding: (config) => dispatch({ type: "setTranscoding", config }),
+      setTranscodings: (configs) =>
+        dispatch({ type: "setTranscodings", configs }),
       addTranscodePreset: (preset) =>
         dispatch({ type: "addTranscodePreset", preset }),
       updateTranscodePreset: (preset) =>

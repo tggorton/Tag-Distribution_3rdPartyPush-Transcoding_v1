@@ -93,8 +93,8 @@ export interface Distro {
   distributionId: number;
   lineItemId: number;
   createdAt: string;
-  /** Transcoding / creative-pipeline status. */
-  status: DistroStatus;
+  /** Transcode status per applied preset (one entry per line-item config). */
+  transcodes: DistroTranscode[];
   /** Delivery-to-platform status (Push Tags to Platform). */
   platformStatus: PlatformStatus;
   /** Where this distro was last pushed, for the platform-status chip suffix. */
@@ -123,15 +123,26 @@ export type ParamFamilyKey = "nexxen" | "ttd" | "creative";
 export type TranscodeSettings = Record<string, string>;
 
 /**
- * The line-item's effective transcoding config. `presetId` records which preset
- * the settings were last derived from; `settings` is the effective (possibly
+ * One transcoding config the line-item applies. `presetId` records which preset
+ * the settings were derived from; `settings` is the effective (possibly
  * hand-edited) value set. When `settings` diverges from that preset's canonical
  * values, the config is a one-off override for this line-item — the preset
- * itself is never mutated.
+ * itself is never mutated. A line-item applies a *list* of these
+ * (`AppState.transcoding`); each distro is transcoded once per config.
  */
 export interface TranscodingConfig {
   presetId: string;
   settings: TranscodeSettings;
+}
+
+/**
+ * One distro's result for one applied transcoding config: which preset it was
+ * transcoded for, and the resulting transcode status. A distro holds one of
+ * these per config in the line-item's transcoding list.
+ */
+export interface DistroTranscode {
+  presetId: string;
+  status: DistroStatus;
 }
 
 /**
@@ -153,6 +164,8 @@ export interface AppState {
   nextDistributionId: number;
   paramsCatalog: ParamsCatalog;
   regions: RegionDef[];
-  transcoding: TranscodingConfig;
+  /** The transcoding configs the line-item applies — each distro gets one
+   *  transcode per entry. */
+  transcoding: TranscodingConfig[];
   transcodePresets: TranscodePreset[];
 }

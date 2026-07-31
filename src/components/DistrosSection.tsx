@@ -4,6 +4,7 @@ import { useApp } from "../state/AppContext";
 import type {
   Distro,
   DistroStatus,
+  DistroTranscode,
   PlatformStatus,
   TranscodingConfig,
 } from "../types";
@@ -12,7 +13,7 @@ import { downloadCsv } from "../lib/csvExport";
 import { RESTART_SIMULATION_MS, STATUS_META } from "../lib/distroStatus";
 import { PLATFORM_STATUS_META } from "../lib/platformStatus";
 import {
-  describeTranscoding,
+  describeTranscodings,
   transcodeLandingStatus,
 } from "../lib/transcodePresets";
 import { DistroTable } from "./DistroTable";
@@ -26,12 +27,13 @@ export const DistrosSection = () => {
   const {
     state,
     removeDistro,
-    setDistroStatus,
-    setAllDistrosStatus,
+    setDistroTranscodes,
+    setAllDistrosTranscodes,
     setDistrosPlatformStatus,
-    setTranscoding,
+    setTranscodings,
   } = useApp();
   const { confirm, confirmDialog } = useConfirm();
+  const presets = state.transcodePresets;
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Distro | null>(null);
   const [pushOpen, setPushOpen] = useState(false);
@@ -72,24 +74,39 @@ export const DistrosSection = () => {
     [],
   );
 
+  // Restart re-transcodes the distro to the line-item's current plan: every
+  // transcode goes Processing, then lands on its config's status.
   const handleRestart = (distro: Distro) => {
-    const retrying = distro.status === "error";
-    setDistroStatus(distro.id, "processing");
+    const retrying = distro.transcodes.some((t) => t.status === "error");
+    const processing = state.transcoding.map(
+      (c): DistroTranscode => ({ presetId: c.presetId, status: "processing" }),
+    );
+    setDistroTranscodes(distro.id, processing);
     setSnack(
       retrying
         ? `Retrying transcode for "${distro.name}"…`
         : `Restarting creatives for "${distro.name}"…`,
     );
     const timer = window.setTimeout(() => {
-      setDistroStatus(distro.id, "live");
-      setSnack(`"${distro.name}" is live`);
+      const landing = state.transcoding.map(
+        (c): DistroTranscode => ({
+          presetId: c.presetId,
+          status: transcodeLandingStatus(c, presets),
+        }),
+      );
+      setDistroTranscodes(distro.id, landing);
+      setSnack(`"${distro.name}" re-transcoded`);
     }, RESTART_SIMULATION_MS);
     restartTimers.current.push(timer);
   };
 
+  // Prototype affordance: force every one of the distro's transcodes to a status.
   const handleSetStatus = (distro: Distro, status: DistroStatus) => {
-    setDistroStatus(distro.id, status);
-    setSnack(`"${distro.name}" set to ${STATUS_META[status].label}`);
+    setDistroTranscodes(
+      distro.id,
+      distro.transcodes.map((t) => ({ ...t, status })),
+    );
+    setSnack(`"${distro.name}" transcodes set to ${STATUS_META[status].label}`);
   };
 
   // Push the selected distros: they go Pushing, then land Success (optimistic —
@@ -136,27 +153,31 @@ export const DistrosSection = () => {
     );
   };
 
-  const handleApplyTranscoding = (config: TranscodingConfig) => {
-    setTranscoding(config);
-    const label = describeTranscoding(config, state.transcodePresets);
+  const handleApplyTranscoding = (configs: TranscodingConfig[]) => {
+    setTranscodings(configs);
+    const label = describeTranscodings(configs, presets);
     if (!hasDistros) {
       setSnack(`Transcoding settings saved — ${label}`);
       return;
     }
-    // Re-transcode every distro: all go Processing, then land on the status the
-    // config implies — Out of Spec (edited), Default (baseline), or Live (preset).
-    const landing = transcodeLandingStatus(config, state.transcodePresets);
-    setAllDistrosStatus("processing");
-    setSnack(`Re-transcoding ${state.distros.length} distribution(s) — ${label}…`);
-    const doneMessage =
-      landing === "outOfSpec"
-        ? "Transcode complete — settings are a custom override (Out of Spec)"
-        : landing === "default"
-          ? "Transcode complete — all distributions on the video baseline (Default)"
-          : `Transcode complete — all distributions live on ${label}`;
+    // Re-transcode every distro against the whole plan: all transcodes go
+    // Processing, then each lands on its config's status.
+    const processing = configs.map(
+      (c): DistroTranscode => ({ presetId: c.presetId, status: "processing" }),
+    );
+    const landing = configs.map(
+      (c): DistroTranscode => ({
+        presetId: c.presetId,
+        status: transcodeLandingStatus(c, presets),
+      }),
+    );
+    setAllDistrosTranscodes(processing);
+    setSnack(
+      `Re-transcoding ${state.distros.length} distribution(s) — ${label}…`,
+    );
     const timer = window.setTimeout(() => {
-      setAllDistrosStatus(landing);
-      setSnack(doneMessage);
+      setAllDistrosTranscodes(landing);
+      setSnack(`Transcode complete — ${label}`);
     }, RESTART_SIMULATION_MS);
     restartTimers.current.push(timer);
   };
@@ -218,7 +239,7 @@ export const DistrosSection = () => {
         color="text.secondary"
         sx={{ mt: -0.5, mb: 1.5 }}
       >
-        Transcoding: {describeTranscoding(state.transcoding, state.transcodePresets)}
+        Transcoding: {describeTranscodings(state.transcoding, presets)}
       </Typography>
       <DistroTable
         distros={state.distros}

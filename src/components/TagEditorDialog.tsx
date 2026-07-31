@@ -193,9 +193,12 @@ export const TagEditorDialog = ({
     distributionId: nextDistributionId(),
     lineItemId: 4387,
     createdAt: new Date().toISOString(),
-    // A new distro inherits the line-item's current transcode state: Default
-    // baseline, a platform preset (Live), or a custom override (Out of Spec).
-    status: transcodeLandingStatus(state.transcoding, state.transcodePresets),
+    // A new distro inherits the line-item's current transcode plan — one
+    // transcode per applied config, each landing on its config's status.
+    transcodes: state.transcoding.map((c) => ({
+      presetId: c.presetId,
+      status: transcodeLandingStatus(c, state.transcodePresets),
+    })),
     platformStatus: "notPushed",
   });
 

@@ -1,6 +1,6 @@
 # Distribution Tags — Transcoding · Prototype Hand-off
 
-> **Living document (draft).** Reflects the prototype as of **2026-07-28** and will be
+> **Living document (draft).** Reflects the prototype as of **2026-07-30** and will be
 > updated as the design evolves. See the Changelog at the bottom.
 > Companion doc: **3rd-Party Push** (`handoff-3rd-party-push.md`).
 
@@ -32,16 +32,28 @@ Stack: React + TypeScript + MUI. Runs at `localhost:5174` (`npm run dev`).
 ## What it does
 
 **Transcoding Settings** (button in the Distributions section, available to all users) opens
-a per-line-item settings sheet with a **preset picker** (searchable) over ~15 fields grouped
-**Video / Audio** — container, codec, resolution, aspect ratio, duration, bitrate, frame
-rate, scan type, chroma, color, audio codec / sample rate / bitrate / channels, loudness. The
-section subheading always shows the current preset, e.g. `Transcoding: Hulu (Disney)`.
+a per-line-item panel that applies **one or more presets**. Every distribution tag is
+transcoded **once per preset**. The section subheading lists what's applied, e.g.
+`Transcoding: Hulu (Disney), Netflix (Ads)`.
 
-- Picking a preset **fills the sheet**.
-- Editing any field is a **one-off override for this line item and never mutates the preset**;
-  a "Modified" chip appears when the sheet diverges.
-- **Applying** re-transcodes every tag: they go **Processing**, then land on the status the
-  config implies (see below).
+- The panel shows a **list of preset rows**. Each row is a **preset picker** over ~15 fields
+  grouped **Video / Audio** (container, codec, resolution, aspect ratio, duration, bitrate,
+  frame rate, scan type, chroma, color, audio codec / sample rate / bitrate / channels,
+  loudness).
+- **The settings are collapsed by default.** Expand a row (chevron) to see and edit its
+  fields; collapse it again to keep the panel tidy.
+- A **"+ Add Preset"** adds a new row **at the top** (collapsed) and **scrolls to it**, so
+  the addition is visible even when a row lower down is expanded. Rows are separated by
+  hairline dividers (no boxed cards).
+- A **trash** icon removes a preset. Deleting one of several just drops it; deleting the
+  **last** one prompts a confirm ("returns the transcoding settings to Default") and, on
+  confirm, resets the plan to the Default baseline. Delete is **disabled** only when the sole
+  preset is *already* Default — Default is the floor and always remains.
+- Picking a preset **fills that row's sheet**. Editing any field is a **one-off override for
+  this line-item and never mutates the preset**; a "Modified" chip appears on that row when it
+  diverges.
+- **Applying** re-transcodes every tag against the whole list: all transcodes go
+  **Processing**, then each lands on the status its config implies (see below).
 
 ## Presets & the admin catalog
 
@@ -68,12 +80,16 @@ section subheading always shows the current preset, e.g. `Transcoding: Hulu (Dis
 | **Out of Spec** | Orange | Settings were manually overridden and may not meet the target pub's spec. A **config** problem, not a run failure — orange to separate it from Error red. | **No** — fix settings |
 | **Inactive** | Grey | Dormant / off. | **Yes** — rebuild |
 
-**Landing after Apply:** `outOfSpec` if hand-edited, `default` if left on the untouched
-baseline, otherwise `live`. New tags inherit the line item's current landing status.
+**One status per applied preset.** Each tag now shows a **stack of status chips in the
+Transcode Status column — one per preset applied** (e.g. `Live: Hulu (Disney)` above
+`Out of Spec: Netflix`). Each chip names its preset. **Landing per config:** `outOfSpec` if
+that row was hand-edited, `default` if it's the untouched baseline, otherwise `live`. New tags
+inherit the line item's current plan (one transcode per applied preset).
 
-**Restart:** a per-row restart icon re-runs the pipeline, enabled only from **Inactive**
-(rebuild) or **Error** (retry) — never Live, Processing, or Out of Spec, where re-running the
-same overrides would just reproduce the problem. The disabled tooltip explains why.
+**Restart:** a per-row restart icon re-transcodes the tag against the **current line-item
+plan** (all its transcodes → Processing → their landing statuses). It's enabled when any of
+the tag's transcodes is **Inactive** or **Error**; disabled otherwise. The `⋯` "Set transcode
+status" affordance forces **all** of a tag's transcodes to one status (prototype only).
 
 ## In the prototype vs. For production
 
@@ -99,15 +115,17 @@ same overrides would just reproduce the problem. The disabled tooltip explains w
 
 ## Walkthrough
 
-1. **Add a distribution tag** — Distributions → *+ Add Distribution Tag*. It appears with a
-   Transcode Status.
-2. **Set the transcode spec** — *Transcoding Settings* → pick **Hulu** → **Apply**. Every tag
-   goes Processing → `Live: Hulu`. Edit a field and Apply again to see them land **Out of
-   Spec** (orange).
-3. **Manage presets as admin** — flip the top-bar toggle to **Admin**, open Transcoding
-   Settings, and use the **pencil** beside the preset picker to add or edit a publisher preset.
-4. **Show failure & recovery** — use a row's `⋯` menu to force **Error**, then the **restart**
-   icon to watch it recover.
+1. **Add a distribution tag** — Distributions → *+ Add Distribution Tag*. It appears with one
+   Transcode Status chip per applied preset.
+2. **Apply multiple presets** — *Transcoding Settings* → the first row is Default → change it
+   to **Hulu** → **+ Add preset** → set the new row to **Netflix** → **Apply**. Every tag now
+   shows two chips: `Live: Hulu` and `Live: Netflix`.
+3. **Override one preset** — expand the Netflix row (chevron), tweak a field ("Modified"
+   appears), Apply → that tag's Netflix chip lands **Out of Spec** while Hulu stays Live.
+4. **Manage presets as admin** — flip the top-bar toggle to **Admin**, open Transcoding
+   Settings, and use the **pencil** to add or edit a publisher preset.
+5. **Show failure & recovery** — use a row's `⋯` menu to force **Error**, then the **restart**
+   icon to re-transcode the whole plan.
 
 ## Known limitations & not-yet-built
 
@@ -118,4 +136,20 @@ same overrides would just reproduce the problem. The disabled tooltip explains w
 
 ## Changelog
 
+- **2026-07-30** — A row set to the **Default baseline** shows its preset picker in an
+  enabled-but-not-active state: **no floating "Preset" label** and muted interior text (solid
+  border unchanged), so it doesn't read as an official preset selection — mirroring the
+  green-ring `default` status chip. A chosen preset shows the label and normal text.
+- **2026-07-30** — Preset rows lost their boxed cards (hairline dividers between them instead).
+  Delete is now always available: deleting the last preset confirms and resets the plan to
+  Default rather than being blocked.
+- **2026-07-30** — "+ Add Preset" now inserts the new row at the **top** and scrolls to it, so
+  the addition stays in the user's sightline instead of appearing off-screen below an expanded
+  row.
+- **2026-07-30** — **Multiple presets per line-item.** The modal now applies a list of presets
+  (collapsible rows, "+ Add preset" / remove); every distro is transcoded once per preset and
+  the Transcode Status column shows one chip per applied preset. Restart re-transcodes the
+  whole plan. Data model: `AppState.transcoding` is now a `TranscodingConfig[]` and each
+  distro holds a `transcodes: { presetId, status }[]` (was a single `status`), with a
+  migration from the old shape.
 - **2026-07-28** — Initial hand-off. Split out from the combined overview.
