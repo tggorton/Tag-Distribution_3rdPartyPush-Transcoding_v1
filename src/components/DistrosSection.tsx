@@ -14,6 +14,7 @@ import { RESTART_SIMULATION_MS, STATUS_META } from "../lib/distroStatus";
 import { PLATFORM_STATUS_META } from "../lib/platformStatus";
 import {
   describeTranscodings,
+  settingsEqual,
   transcodeLandingStatus,
 } from "../lib/transcodePresets";
 import { DistroTable } from "./DistroTable";
@@ -28,7 +29,7 @@ export const DistrosSection = () => {
     state,
     removeDistro,
     setDistroTranscodes,
-    setAllDistrosTranscodes,
+    setDistrosTranscodes,
     setDistrosPlatformStatus,
     setTranscodings,
   } = useApp();
@@ -116,8 +117,13 @@ export const DistrosSection = () => {
     ids: string[],
     platformName: string,
     advertiserName: string,
+    advertiserId: string,
   ) => {
-    const target = { platform: platformName, advertiser: advertiserName };
+    const target = {
+      platform: platformName,
+      advertiser: advertiserName,
+      advertiserId,
+    };
     setDistrosPlatformStatus(ids, "pushing", target);
     setSnack(`Pushing ${ids.length} tag(s) to ${platformName}…`);
     const timer = window.setTimeout(() => {
@@ -154,29 +160,57 @@ export const DistrosSection = () => {
   };
 
   const handleApplyTranscoding = (configs: TranscodingConfig[]) => {
+    const prevConfigs = state.transcoding;
     setTranscodings(configs);
     const label = describeTranscodings(configs, presets);
     if (!hasDistros) {
       setSnack(`Transcoding settings saved — ${label}`);
       return;
     }
-    // Re-transcode every distro against the whole plan: all transcodes go
-    // Processing, then each lands on its config's status.
-    const processing = configs.map(
-      (c): DistroTranscode => ({ presetId: c.presetId, status: "processing" }),
-    );
-    const landing = configs.map(
-      (c): DistroTranscode => ({
-        presetId: c.presetId,
-        status: transcodeLandingStatus(c, presets),
-      }),
-    );
-    setAllDistrosTranscodes(processing);
+    // Only re-transcode presets that are new or changed vs. what was already
+    // applied — a preset unchanged since last apply keeps each distro's existing
+    // status (it can stay as it is). "Changed" = same preset id but different
+    // settings, or a preset the previous plan didn't have.
+    const isChanged = (c: TranscodingConfig) =>
+      !prevConfigs.some(
+        (p) => p.presetId === c.presetId && settingsEqual(p.settings, c.settings),
+      );
+    const changedCount = configs.filter(isChanged).length;
+
+    // Build each distro's transcode list for the new plan. A config that needs
+    // reprocessing (changed, or the distro has no status for it yet) → the given
+    // `active` status; otherwise carry the distro's current status forward.
+    const buildEntries = (activeStatus: (c: TranscodingConfig) => DistroTranscode["status"]) =>
+      state.distros.map((d) => {
+        const current = new Map(d.transcodes.map((t) => [t.presetId, t.status]));
+        return {
+          id: d.id,
+          transcodes: configs.map((c): DistroTranscode => {
+            const reprocess = isChanged(c) || !current.has(c.presetId);
+            return {
+              presetId: c.presetId,
+              status: reprocess ? activeStatus(c) : current.get(c.presetId)!,
+            };
+          }),
+        };
+      });
+
+    const landed = buildEntries((c) => transcodeLandingStatus(c, presets));
+
+    // Nothing new/changed (e.g. only a reorder or removal) — commit without a
+    // Processing pass.
+    if (changedCount === 0) {
+      setDistrosTranscodes(landed);
+      setSnack(`Transcoding updated — ${label}`);
+      return;
+    }
+
+    setDistrosTranscodes(buildEntries(() => "processing"));
     setSnack(
-      `Re-transcoding ${state.distros.length} distribution(s) — ${label}…`,
+      `Re-transcoding ${changedCount} preset${changedCount === 1 ? "" : "s"} across ${state.distros.length} distribution(s)…`,
     );
     const timer = window.setTimeout(() => {
-      setAllDistrosTranscodes(landing);
+      setDistrosTranscodes(landed);
       setSnack(`Transcode complete — ${label}`);
     }, RESTART_SIMULATION_MS);
     restartTimers.current.push(timer);

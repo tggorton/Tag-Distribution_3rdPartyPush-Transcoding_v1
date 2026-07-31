@@ -29,7 +29,12 @@ interface Props {
   open: boolean;
   onClose: () => void;
   /** Fires the push: the selected distro ids plus the chosen destination. */
-  onPush: (ids: string[], platformName: string, advertiserName: string) => void;
+  onPush: (
+    ids: string[],
+    platformName: string,
+    advertiserName: string,
+    advertiserId: string,
+  ) => void;
   /** Pre-select a platform on open (used by "Add + Push"). */
   initialPlatformId?: string | null;
   /** Pre-select these tags on open (else the chosen platform's tags are selected). */
@@ -143,7 +148,7 @@ export const PushTagsDialog = ({
 
   const handlePush = () => {
     if (!platform || !advertiser || selectedCount === 0) return;
-    onPush(selectedIds, platform.name, advertiser.name);
+    onPush(selectedIds, platform.name, advertiser.name, advertiser.advertiserId);
     onClose();
   };
 
@@ -200,7 +205,7 @@ export const PushTagsDialog = ({
             value={advertiser}
             onChange={(_, newValue) => setAdvertiser(newValue)}
             options={advertisers}
-            getOptionLabel={(opt) => opt.name}
+            getOptionLabel={(opt) => `${opt.name} · ${opt.advertiserId}`}
             isOptionEqualToValue={(opt, val) => opt.id === val.id}
             disabled={!platform || loadingAdvertisers}
             loading={loadingAdvertisers}
@@ -293,14 +298,28 @@ export const PushTagsDialog = ({
                         }
                         label={<Typography variant="body2">{d.name}</Typography>}
                       />
-                      <Typography
-                        variant="caption"
-                        color={eligible ? "text.secondary" : "text.disabled"}
-                        sx={{ pl: 1, whiteSpace: "nowrap" }}
-                      >
-                        {tagPlatform?.name ?? "—"} ·{" "}
-                        {PLATFORM_STATUS_META[d.platformStatus].label}
-                      </Typography>
+                      <Stack alignItems="flex-end" sx={{ pl: 1 }}>
+                        <Typography
+                          variant="caption"
+                          color={eligible ? "text.secondary" : "text.disabled"}
+                          sx={{ whiteSpace: "nowrap" }}
+                        >
+                          {tagPlatform?.name ?? "—"} ·{" "}
+                          {PLATFORM_STATUS_META[d.platformStatus].label}
+                        </Typography>
+                        {d.pushTarget?.advertiser && (
+                          <Typography
+                            variant="caption"
+                            color="text.disabled"
+                            sx={{ whiteSpace: "nowrap", lineHeight: 1.3 }}
+                          >
+                            {d.pushTarget.advertiser}
+                            {d.pushTarget.advertiserId
+                              ? ` · ${d.pushTarget.advertiserId}`
+                              : ""}
+                          </Typography>
+                        )}
+                      </Stack>
                     </Stack>
                   );
                 })}

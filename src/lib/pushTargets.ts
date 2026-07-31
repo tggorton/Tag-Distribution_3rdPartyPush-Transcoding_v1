@@ -18,8 +18,12 @@ export interface PushPlatform {
 }
 
 export interface PlatformAdvertiser {
+  /** Internal id for keys/equality (not shown to the user). */
   id: string;
   name: string;
+  /** The advertiser ID shown to the user next to the name. Placeholder format
+   *  (6 digits, leading zeros allowed) — the real format is TBD. */
+  advertiserId: string;
 }
 
 export const PUSH_PLATFORMS: PushPlatform[] = [
@@ -40,13 +44,20 @@ export const platformForFamily = (family: string): PushPlatform | undefined =>
 const MOCK_LATENCY_MS = 450;
 const MOCK_ADVERTISER_COUNT = 10;
 
+const platformSeed = (platformId: string) =>
+  [...platformId].reduce((acc, c) => acc + c.charCodeAt(0), 0);
+
 /** Deterministic per-platform ordering, so each DSP visibly returns its own list. */
 const seededOrder = (platformId: string, count: number): number[] => {
-  const seed = [...platformId].reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const seed = platformSeed(platformId);
   return Array.from({ length: count }, (_, i) => i + 1).sort(
     (a, b) => ((a * seed) % 13) - ((b * seed) % 13) || a - b,
   );
 };
+
+/** Placeholder advertiser ID (6 digits) — deterministic, real format TBD. */
+const mockAdvertiserId = (platformId: string, n: number): string =>
+  String((n * 48611 + platformSeed(platformId) * 31) % 1000000).padStart(6, "0");
 
 export const fetchPlatformAdvertisers = (
   platformId: string,
@@ -57,6 +68,7 @@ export const fetchPlatformAdvertisers = (
         seededOrder(platformId, MOCK_ADVERTISER_COUNT).map((n) => ({
           id: `${platformId}-advertiser-${n}`,
           name: `Advertiser ${n}`,
+          advertiserId: mockAdvertiserId(platformId, n),
         })),
       );
     }, MOCK_LATENCY_MS);

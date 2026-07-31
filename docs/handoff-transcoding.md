@@ -52,8 +52,11 @@ transcoded **once per preset**. The section subheading lists what's applied, e.g
 - Picking a preset **fills that row's sheet**. Editing any field is a **one-off override for
   this line-item and never mutates the preset**; a "Modified" chip appears on that row when it
   diverges.
-- **Applying** re-transcodes every tag against the whole list: all transcodes go
-  **Processing**, then each lands on the status its config implies (see below).
+- **Applying only reprocesses what's new or changed.** A preset unchanged since the last
+  apply keeps each tag's current status; a **newly added** preset, or one whose **settings
+  were edited**, goes Processing → its landing status. So adding "Netflix" to an
+  already-applied "Hulu, ABC, Peacock" reprocesses **only Netflix** — the rest stay put.
+  (Changed = same preset with different settings, or a preset the previous plan didn't have.)
 
 ## Presets & the admin catalog
 
@@ -136,6 +139,10 @@ status" affordance forces **all** of a tag's transcodes to one status (prototype
 
 ## Changelog
 
+- **2026-07-31** — **Incremental apply.** Applying now reprocesses only new or changed presets
+  (Processing → landing); presets unchanged since the last apply keep each distro's current
+  status. Editing a preset's settings counts as changed. (State: apply diffs the new plan
+  against the previously-applied one and updates each distro's transcodes per-preset.)
 - **2026-07-30** — A row set to the **Default baseline** shows its preset picker in an
   enabled-but-not-active state: **no floating "Preset" label** and muted interior text (solid
   border unchanged), so it doesn't read as an official preset selection — mirroring the

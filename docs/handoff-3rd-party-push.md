@@ -1,6 +1,6 @@
 # Distribution Tags — 3rd-Party Push · Prototype Hand-off
 
-> **Living document (draft).** Reflects the prototype as of **2026-07-30** and will be
+> **Living document (draft).** Reflects the prototype as of **2026-07-31** and will be
 > updated as the design evolves. See the Changelog at the bottom.
 > Companion doc: **Transcoding** (`handoff-transcoding.md`).
 
@@ -34,6 +34,8 @@ tag exists) opens a dialog to choose a destination and exactly which tags to sen
 
 - Advertisers are **scoped to the platform** — each platform returns its own set — so the
   platform must be chosen before the advertiser field enables.
+- Each advertiser shows as **name + advertiser ID** — e.g. `Advertiser 1 · 012345`. *(The ID
+  format is a placeholder; the real format is TBD.)*
 - The advertiser list loads **asynchronously** with a spinner, and a stale-response guard
   keeps a slow reply from overwriting a newer platform's list.
 
@@ -64,7 +66,8 @@ direct lookup, so future platforms are covered as their family is added.
 - Until a platform is chosen, **nothing is selected** — the checklist prompts "Pick a platform
   to select its tags." Choosing one selects that platform's tags automatically.
 - The dialog lists every tag with a checkbox; each row shows its **platform + current platform
-  status**, so a user pushing "just the new ones" can see what's already gone out. Tags that
+  status**, and — for a tag already pushed — the **advertiser + ID it was last assigned to**
+  (`Advertiser 1 · 012345`). So a user can see what's already gone out and where. Tags that
   don't belong to the chosen platform are disabled.
 - A select-all toggle and a live "3 of 6 Nexxen tags selected" count cover the chosen
   platform's tags. The push button reflects the count — `Push 3 Tags` — and stays disabled
@@ -134,6 +137,9 @@ recorded per tag (from the platform + advertiser chosen).
 
 ## Changelog
 
+- **2026-07-31** — Advertisers now show **name + advertiser ID** (`Advertiser 1 · 012345`;
+  ID format is a placeholder). The push dialog's tag list also shows the **advertiser + ID
+  each already-pushed tag is assigned to**.
 - **2026-07-30** — Fixed **Add + Push** showing "No options" for advertisers: the advertiser
   fetch now also refires when the dialog opens (not only on platform change), so a pre-locked
   platform loads its advertisers even when it matches the previously-used platform.

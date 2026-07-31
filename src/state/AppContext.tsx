@@ -54,12 +54,15 @@ type Action =
   | { type: "updateDistro"; distro: Distro }
   | { type: "removeDistro"; id: string }
   | { type: "setDistroTranscodes"; id: string; transcodes: DistroTranscode[] }
-  | { type: "setAllDistrosTranscodes"; transcodes: DistroTranscode[] }
+  | {
+      type: "setDistrosTranscodes";
+      entries: { id: string; transcodes: DistroTranscode[] }[];
+    }
   | {
       type: "setDistrosPlatformStatus";
       ids: string[];
       status: PlatformStatus;
-      target?: { platform: string; advertiser: string };
+      target?: { platform: string; advertiser: string; advertiserId?: string };
     }
   | { type: "setTranscodings"; configs: TranscodingConfig[] }
   | { type: "addTranscodePreset"; preset: TranscodePreset }
@@ -110,14 +113,15 @@ const reducer = (state: AppState, action: Action): AppState => {
           d.id === action.id ? { ...d, transcodes: action.transcodes } : d,
         ),
       };
-    case "setAllDistrosTranscodes":
+    case "setDistrosTranscodes": {
+      const map = new Map(action.entries.map((e) => [e.id, e.transcodes]));
       return {
         ...state,
-        distros: state.distros.map((d) => ({
-          ...d,
-          transcodes: action.transcodes,
-        })),
+        distros: state.distros.map((d) =>
+          map.has(d.id) ? { ...d, transcodes: map.get(d.id)! } : d,
+        ),
       };
+    }
     case "setDistrosPlatformStatus": {
       const idSet = new Set(action.ids);
       return {
@@ -233,11 +237,13 @@ interface AppContextValue {
   updateDistro: (distro: Distro) => void;
   removeDistro: (id: string) => void;
   setDistroTranscodes: (id: string, transcodes: DistroTranscode[]) => void;
-  setAllDistrosTranscodes: (transcodes: DistroTranscode[]) => void;
+  setDistrosTranscodes: (
+    entries: { id: string; transcodes: DistroTranscode[] }[],
+  ) => void;
   setDistrosPlatformStatus: (
     ids: string[],
     status: PlatformStatus,
-    target?: { platform: string; advertiser: string },
+    target?: { platform: string; advertiser: string; advertiserId?: string },
   ) => void;
   setTranscodings: (configs: TranscodingConfig[]) => void;
   addTranscodePreset: (preset: TranscodePreset) => void;
@@ -398,8 +404,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       removeDistro: (id) => dispatch({ type: "removeDistro", id }),
       setDistroTranscodes: (id, transcodes) =>
         dispatch({ type: "setDistroTranscodes", id, transcodes }),
-      setAllDistrosTranscodes: (transcodes) =>
-        dispatch({ type: "setAllDistrosTranscodes", transcodes }),
+      setDistrosTranscodes: (entries) =>
+        dispatch({ type: "setDistrosTranscodes", entries }),
       setDistrosPlatformStatus: (ids, status, target) =>
         dispatch({ type: "setDistrosPlatformStatus", ids, status, target }),
       setTranscodings: (configs) =>

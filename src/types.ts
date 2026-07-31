@@ -97,8 +97,8 @@ export interface Distro {
   transcodes: DistroTranscode[];
   /** Delivery-to-platform status (Push Tags to Platform). */
   platformStatus: PlatformStatus;
-  /** Where this distro was last pushed, for the platform-status chip suffix. */
-  pushTarget?: { platform: string; advertiser: string };
+  /** Where this distro was last pushed — platform, advertiser name, advertiser id. */
+  pushTarget?: { platform: string; advertiser: string; advertiserId?: string };
 }
 
 export interface ParamDef {
