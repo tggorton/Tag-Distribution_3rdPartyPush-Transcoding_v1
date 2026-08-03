@@ -1,4 +1,4 @@
-import { Box, Button, Snackbar, Stack, Typography } from "@mui/material";
+import { Box, Button, Snackbar, Stack } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../state/AppContext";
 import type {
@@ -314,13 +314,6 @@ export const DistrosSection = () => {
           </Stack>
         }
       />
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ mt: -0.5, mb: 1.5 }}
-      >
-        Transcoding: {describeTranscodings(state.transcoding, presets)}
-      </Typography>
       <DistroTable
         distros={state.distros}
         onCopy={handleCopy}

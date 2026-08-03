@@ -33,8 +33,9 @@ Stack: React + TypeScript + MUI. Runs at `localhost:5174` (`npm run dev`).
 
 **Transcoding Settings** (button in the Distributions section, available to all users) opens
 a per-line-item panel that applies **one or more presets**. Every distribution tag is
-transcoded **once per preset**. The section subheading lists what's applied, e.g.
-`Transcoding: Hulu (Disney), Netflix (Ads)`.
+transcoded **once per preset**, and each tag's applied presets and their statuses show as a
+stack of chips in its **Transcode Status** column — so the plan is read per-distro in the
+table, not from a section subheading.
 
 - The panel shows a **list of preset rows**. Each row is a **preset picker** over ~15 fields
   grouped **Video / Audio** (container, codec, resolution, aspect ratio, duration, bitrate,
@@ -140,6 +141,10 @@ affordance forces **all** of a tag's transcodes to one status (prototype only).
 
 ## Changelog
 
+- **2026-08-03** — **Dropped the Distributions section subheading.** The line-item's transcode
+  plan was echoed as a `Transcoding: …` subtitle under the section title; it's redundant now
+  that each distro's Transcode Status column shows a chip per applied preset, so the subheading
+  was removed (the section has no subtitle).
 - **2026-08-03** — **Restart now confirms.** A confirmation dialog guards the per-row restart
   so a re-transcode isn't triggered by accident.
 - **2026-07-31** — **Incremental apply.** Applying now reprocesses only new or changed presets
