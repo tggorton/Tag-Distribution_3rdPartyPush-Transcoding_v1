@@ -22,6 +22,7 @@ import type {
   TranscodePreset,
   TranscodingConfig,
 } from "../types";
+import type { PlatformAdvertiser } from "../lib/pushTargets";
 import { seedRegions, seedTemplates } from "./seedData";
 import { SEED_PARAMS_CATALOG } from "../lib/paramCatalog";
 import { DEFAULT_DISTRO_STATUS } from "../lib/distroStatus";
@@ -45,6 +46,7 @@ const initialState: AppState = {
   regions: seedRegions,
   transcoding: DEFAULT_TRANSCODINGS,
   transcodePresets: SEED_TRANSCODE_PRESETS,
+  platformAdvertisers: {},
 };
 
 type Action =
@@ -65,6 +67,11 @@ type Action =
       target?: { platform: string; advertiser: string; advertiserId?: string };
     }
   | { type: "setTranscodings"; configs: TranscodingConfig[] }
+  | {
+      type: "rememberPlatformAdvertiser";
+      platformId: string;
+      advertiser: PlatformAdvertiser;
+    }
   | { type: "addTranscodePreset"; preset: TranscodePreset }
   | { type: "updateTranscodePreset"; preset: TranscodePreset }
   | { type: "deleteTranscodePreset"; id: string }
@@ -138,6 +145,14 @@ const reducer = (state: AppState, action: Action): AppState => {
     }
     case "setTranscodings":
       return { ...state, transcoding: action.configs };
+    case "rememberPlatformAdvertiser":
+      return {
+        ...state,
+        platformAdvertisers: {
+          ...state.platformAdvertisers,
+          [action.platformId]: action.advertiser,
+        },
+      };
     case "addTranscodePreset":
       return {
         ...state,
@@ -246,6 +261,10 @@ interface AppContextValue {
     target?: { platform: string; advertiser: string; advertiserId?: string },
   ) => void;
   setTranscodings: (configs: TranscodingConfig[]) => void;
+  rememberPlatformAdvertiser: (
+    platformId: string,
+    advertiser: PlatformAdvertiser,
+  ) => void;
   addTranscodePreset: (preset: TranscodePreset) => void;
   updateTranscodePreset: (preset: TranscodePreset) => void;
   deleteTranscodePreset: (id: string) => void;
@@ -379,6 +398,7 @@ const loadFromStorage = (): AppState | null => {
       regions: ensureRegions(parsed.regions),
       transcoding,
       transcodePresets: ensureTranscodePresets(parsed.transcodePresets),
+      platformAdvertisers: parsed.platformAdvertisers ?? {},
     };
   } catch {
     return null;
@@ -410,6 +430,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         dispatch({ type: "setDistrosPlatformStatus", ids, status, target }),
       setTranscodings: (configs) =>
         dispatch({ type: "setTranscodings", configs }),
+      rememberPlatformAdvertiser: (platformId, advertiser) =>
+        dispatch({ type: "rememberPlatformAdvertiser", platformId, advertiser }),
       addTranscodePreset: (preset) =>
         dispatch({ type: "addTranscodePreset", preset }),
       updateTranscodePreset: (preset) =>

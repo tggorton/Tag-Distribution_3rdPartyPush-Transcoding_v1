@@ -91,8 +91,9 @@ inherit the line item's current plan (one transcode per applied preset).
 
 **Restart:** a per-row restart icon re-transcodes the tag against the **current line-item
 plan** (all its transcodes → Processing → their landing statuses). It's enabled when any of
-the tag's transcodes is **Inactive** or **Error**; disabled otherwise. The `⋯` "Set transcode
-status" affordance forces **all** of a tag's transcodes to one status (prototype only).
+the tag's transcodes is **Inactive** or **Error**; disabled otherwise. **Restart asks for
+confirmation first** so it can't be triggered by accident. The `⋯` "Set transcode status"
+affordance forces **all** of a tag's transcodes to one status (prototype only).
 
 ## In the prototype vs. For production
 
@@ -139,6 +140,8 @@ status" affordance forces **all** of a tag's transcodes to one status (prototype
 
 ## Changelog
 
+- **2026-08-03** — **Restart now confirms.** A confirmation dialog guards the per-row restart
+  so a re-transcode isn't triggered by accident.
 - **2026-07-31** — **Incremental apply.** Applying now reprocesses only new or changed presets
   (Processing → landing); presets unchanged since the last apply keep each distro's current
   status. Editing a preset's settings counts as changed. (State: apply diffs the new plan

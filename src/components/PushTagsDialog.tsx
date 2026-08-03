@@ -31,9 +31,8 @@ interface Props {
   /** Fires the push: the selected distro ids plus the chosen destination. */
   onPush: (
     ids: string[],
-    platformName: string,
-    advertiserName: string,
-    advertiserId: string,
+    platform: PushPlatform,
+    advertiser: PlatformAdvertiser,
   ) => void;
   /** Pre-select a platform on open (used by "Add + Push"). */
   initialPlatformId?: string | null;
@@ -96,11 +95,25 @@ export const PushTagsDialog = ({
       if (stale) return;
       setAdvertisers(result);
       setLoadingAdvertisers(false);
+      // Sticky advertiser: default to the last one pushed to this platform.
+      const remembered = state.platformAdvertisers[platform.id];
+      if (remembered) {
+        const match = result.find((a) => a.id === remembered.id);
+        if (match) setAdvertiser(match);
+      }
     });
     return () => {
       stale = true;
     };
-  }, [open, platform]);
+  }, [open, platform, state.platformAdvertisers]);
+
+  // Once a platform has an advertiser for this line-item, it's LOCKED — the
+  // advertiser can't be changed (linking a platform+advertiser is non-trivial
+  // on the backend, so a line-item keeps one advertiser per platform). Only the
+  // first push to a platform picks the advertiser.
+  const advertiserLocked = Boolean(
+    platform && state.platformAdvertisers[platform.id],
+  );
 
   // A tag can only be pushed to the platform it was built for (its family). The
   // platform picker always lists every platform; choosing one auto-selects that
@@ -148,7 +161,7 @@ export const PushTagsDialog = ({
 
   const handlePush = () => {
     if (!platform || !advertiser || selectedCount === 0) return;
-    onPush(selectedIds, platform.name, advertiser.name, advertiser.advertiserId);
+    onPush(selectedIds, platform, advertiser);
     onClose();
   };
 
@@ -208,6 +221,7 @@ export const PushTagsDialog = ({
             getOptionLabel={(opt) => `${opt.name} · ${opt.advertiserId}`}
             isOptionEqualToValue={(opt, val) => opt.id === val.id}
             disabled={!platform || loadingAdvertisers}
+            readOnly={advertiserLocked}
             loading={loadingAdvertisers}
             fullWidth
             renderInput={(params) => (
@@ -221,9 +235,11 @@ export const PushTagsDialog = ({
                 }
                 InputLabelProps={{ shrink: true }}
                 helperText={
-                  platform
-                    ? `Advertisers available on ${platform.name}`
-                    : "Enabled once a platform is selected"
+                  advertiserLocked
+                    ? `Locked — ${platform?.name} uses one advertiser per line-item`
+                    : platform
+                      ? `Advertisers available on ${platform.name}`
+                      : "Enabled once a platform is selected"
                 }
                 InputProps={{
                   ...params.InputProps,

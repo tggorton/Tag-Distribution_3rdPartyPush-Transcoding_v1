@@ -36,6 +36,13 @@ tag exists) opens a dialog to choose a destination and exactly which tags to sen
   platform must be chosen before the advertiser field enables.
 - Each advertiser shows as **name + advertiser ID** — e.g. `Advertiser 1 · 012345`. *(The ID
   format is a placeholder; the real format is TBD.)*
+- **One advertiser per platform, locked:** the **first** push to a platform sets its
+  advertiser; every push after that **reuses it and the advertiser field is read-only** —
+  it can't be changed. Each platform keeps its own (Nexxen and TTD independently). Rationale:
+  linking a platform + advertiser is non-trivial on the backend, so a line-item shouldn't let
+  the advertiser churn. *(Provisional — pending product review; a revert point exists, see the
+  Changelog. There's currently no in-app way to change a locked advertiser — clearing demo
+  state resets it.)*
 - The advertiser list loads **asynchronously** with a spinner, and a stale-response guard
   keeps a slow reply from overwriting a newer platform's list.
 
@@ -73,16 +80,19 @@ direct lookup, so future platforms are covered as their family is added.
   platform's tags. The push button reflects the count — `Push 3 Tags` — and stays disabled
   until a platform, an advertiser, and at least one tag are selected.
 
-## Add + Push (from the tag editor)
+## Add + Push / Save + Push (from the tag editor)
 
-When **adding** a new tag, alongside **Add** there's an **Add + Push** button. It creates the
-tag, then opens the push flow **pre-scoped**: the platform is **locked to the tag's family**
-(a Nexxen tag opens push locked to Nexxen) and that one tag is pre-selected. The user just
-picks the advertiser and confirms. This is the fast path for "make a tag and send it now"
-without re-choosing the platform.
+The tag editor has a **push button in both modes**, so a tag can be pushed the moment it's
+created *or* any time afterward:
 
-*(This is the current design; may change after testing — e.g. a fully one-click auto-push with
-a default advertiser, or an inline advertiser field in the editor.)*
+- **Add mode:** alongside **Add**, there's **Add + Push**.
+- **Edit mode:** alongside **Save**, there's **Save + Push** — this closes the gap where a tag
+  added without pushing had no easy per-tag push later.
+
+Either one saves the tag, then opens the push flow **pre-scoped**: the platform is **locked to
+the tag's family** (a Nexxen tag opens push locked to Nexxen) and that one tag is pre-selected.
+With the sticky advertiser (above), the advertiser is often pre-filled too — so it can be a
+single confirm.
 
 ## Platform Status — the states
 
@@ -105,6 +115,10 @@ transcode restart icon). The icon reflects **state**, and clicking it toggles:
 - **Inactive** or **Error** → **link-off** icon (unlinked) → click **relinks** to the
   remembered platform → **Success**.
 - **Not pushed / Pushing** → disabled (link-off, nothing to toggle).
+
+**Both unlink and re-link ask for confirmation first** — they change the platform connection,
+which shouldn't happen by accident (transcode restart is guarded the same way). The prompts are
+generic ("…for this distribution?"), not platform-specific.
 
 ## In the prototype vs. For production
 
@@ -147,6 +161,16 @@ transcode restart icon). The icon reflects **state**, and clicking it toggles:
 
 ## Changelog
 
+- **2026-08-03** — **Unlink and re-link now confirm.** Both platform-link toggles ask for
+  confirmation first (generic prompts), paired with the same guard on transcode restart —
+  guarding against accidental changes to a platform connection.
+- **2026-08-03** — **One advertiser per platform, locked (provisional).** The first push to a
+  platform sets its advertiser; further pushes reuse it with the advertiser field **read-only**
+  (no changing it — the backend linking is non-trivial). Each platform keeps its own. Built as
+  a distinct, reversible step — revert branch `iteration/pre-sticky-advertiser` (git commit
+  `83a614f`) restores the pre-sticky state if product review rejects it.
+- **2026-08-03** — Tag editor's push button now works in **edit mode** too (**Save + Push**),
+  so a tag added without pushing can be pushed later without the bulk dialog.
 - **2026-08-03** — Added an **Inactive** platform status and a **link/unlink toggle**, exposed
   as an **icon** in each distro's row actions (right of the restart icon). The icon reflects
   state: **link-on** for Success (click unlinks → Inactive), **link-off** for Inactive/Error

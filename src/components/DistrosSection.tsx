@@ -12,6 +12,7 @@ import { buildDistroUrl } from "../lib/tagBuilder";
 import { downloadCsv } from "../lib/csvExport";
 import { RESTART_SIMULATION_MS, STATUS_META } from "../lib/distroStatus";
 import { PLATFORM_STATUS_META } from "../lib/platformStatus";
+import type { PlatformAdvertiser, PushPlatform } from "../lib/pushTargets";
 import {
   describeTranscodings,
   settingsEqual,
@@ -32,6 +33,7 @@ export const DistrosSection = () => {
     setDistrosTranscodes,
     setDistrosPlatformStatus,
     setTranscodings,
+    rememberPlatformAdvertiser,
   } = useApp();
   const { confirm, confirmDialog } = useConfirm();
   const presets = state.transcodePresets;
@@ -76,8 +78,16 @@ export const DistrosSection = () => {
   );
 
   // Restart re-transcodes the distro to the line-item's current plan: every
-  // transcode goes Processing, then lands on its config's status.
-  const handleRestart = (distro: Distro) => {
+  // transcode goes Processing, then lands on its config's status. Confirmed
+  // first so it can't be triggered by accident.
+  const handleRestart = async (distro: Distro) => {
+    const ok = await confirm({
+      title: "Restart transcoding?",
+      message:
+        "Are you sure you want to start a re-process for transcoding for this distribution?",
+      confirmLabel: "Restart",
+    });
+    if (!ok) return;
     const retrying = distro.transcodes.some((t) => t.status === "error");
     const processing = state.transcoding.map(
       (c): DistroTranscode => ({ presetId: c.presetId, status: "processing" }),
@@ -115,21 +125,23 @@ export const DistrosSection = () => {
   // "Set platform status" affordance to demo an Error/rejection meanwhile).
   const handlePush = (
     ids: string[],
-    platformName: string,
-    advertiserName: string,
-    advertiserId: string,
+    platform: PushPlatform,
+    advertiser: PlatformAdvertiser,
   ) => {
+    // Sticky advertiser: remember this choice for the platform so further pushes
+    // to it default to the same advertiser.
+    rememberPlatformAdvertiser(platform.id, advertiser);
     const target = {
-      platform: platformName,
-      advertiser: advertiserName,
-      advertiserId,
+      platform: platform.name,
+      advertiser: advertiser.name,
+      advertiserId: advertiser.advertiserId,
     };
     setDistrosPlatformStatus(ids, "pushing", target);
-    setSnack(`Pushing ${ids.length} tag(s) to ${platformName}…`);
+    setSnack(`Pushing ${ids.length} tag(s) to ${platform.name}…`);
     const timer = window.setTimeout(() => {
       setDistrosPlatformStatus(ids, "success");
       setSnack(
-        `Pushed ${ids.length} tag(s) to ${platformName} — ${advertiserName}`,
+        `Pushed ${ids.length} tag(s) to ${platform.name} — ${advertiser.name}`,
       );
     }, RESTART_SIMULATION_MS);
     restartTimers.current.push(timer);
@@ -161,7 +173,15 @@ export const DistrosSection = () => {
 
   // Unlink from the platform → Inactive. The push target stays, so the chip reads
   // "Inactive: Nexxen" (which platform it was unlinked from) and it can relink.
-  const handleUnlinkPlatform = (distro: Distro) => {
+  // Confirmed first — breaking a platform connection shouldn't fire by accident.
+  const handleUnlinkPlatform = async (distro: Distro) => {
+    const ok = await confirm({
+      title: "Unlink platform?",
+      message:
+        "Are you sure you want to un-link the platform connection for this distribution?",
+      confirmLabel: "Unlink",
+    });
+    if (!ok) return;
     setDistrosPlatformStatus([distro.id], "inactive");
     setSnack(
       `"${distro.name}" unlinked${distro.pushTarget ? ` from ${distro.pushTarget.platform}` : ""}`,
@@ -169,8 +189,16 @@ export const DistrosSection = () => {
   };
 
   // Relink an Inactive tag back to its original platform → Success (the push
-  // target is preserved, so the chip returns to "Success: Nexxen").
-  const handleRelinkPlatform = (distro: Distro) => {
+  // target is preserved, so the chip returns to "Success: Nexxen"). Confirmed
+  // first — re-establishing the platform link shouldn't fire by accident.
+  const handleRelinkPlatform = async (distro: Distro) => {
+    const ok = await confirm({
+      title: "Re-link platform?",
+      message:
+        "Are you sure you want to re-establish a platform connection for this distribution?",
+      confirmLabel: "Re-link",
+    });
+    if (!ok) return;
     setDistrosPlatformStatus([distro.id], "success");
     setSnack(
       `"${distro.name}" relinked${distro.pushTarget ? ` to ${distro.pushTarget.platform}` : ""}`,

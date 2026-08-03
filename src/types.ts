@@ -174,4 +174,10 @@ export interface AppState {
    *  transcode per entry. */
   transcoding: TranscodingConfig[];
   transcodePresets: TranscodePreset[];
+  /** The last advertiser pushed to per platform id, so further pushes to that
+   *  platform default to it. Advertiser type lives in lib/pushTargets. */
+  platformAdvertisers: Record<
+    string,
+    { id: string; name: string; advertiserId: string }
+  >;
 }
