@@ -37,12 +37,14 @@ tag exists) opens a dialog to choose a destination and exactly which tags to sen
 - Each advertiser shows as **name + advertiser ID** — e.g. `Advertiser 1 · 012345`. *(The ID
   format is a placeholder; the real format is TBD.)*
 - **One advertiser per platform, locked:** the **first** push to a platform sets its
-  advertiser; every push after that **reuses it and the advertiser field is read-only** —
-  it can't be changed. Each platform keeps its own (Nexxen and TTD independently). Rationale:
-  linking a platform + advertiser is non-trivial on the backend, so a line-item shouldn't let
-  the advertiser churn. *(Provisional — pending product review; a revert point exists, see the
-  Changelog. There's currently no in-app way to change a locked advertiser — clearing demo
-  state resets it.)*
+  advertiser; every push after that **reuses it and the advertiser field is disabled** — not
+  merely read-only. The field greys out, a **lock icon** sits at its right edge, and hovering
+  it shows *"This advertiser is locked. Contact support to change the advertiser for this
+  platform."* Each platform keeps its own (Nexxen and TTD independently). Rationale: linking a
+  platform + advertiser is non-trivial on the backend, so a line-item shouldn't let the
+  advertiser churn — changing it is deliberately a support operation, not a self-serve control.
+  *(In the prototype there's no in-app way to change a locked advertiser — clearing demo state
+  resets it.)*
 - The advertiser list loads **asynchronously** with a spinner, and a stale-response guard
   keeps a slow reply from overwriting a newer platform's list.
 
@@ -161,14 +163,16 @@ generic ("…for this distribution?"), not platform-specific.
 
 ## Changelog
 
+- **2026-08-03** — **Locked advertiser is now fully disabled.** Once an advertiser is set for a
+  platform, the field is **disabled** (not just read-only), with a **lock icon** and a tooltip
+  directing the user to **contact support** to change it — making clear it's a support
+  operation, not a self-serve control.
 - **2026-08-03** — **Unlink and re-link now confirm.** Both platform-link toggles ask for
   confirmation first (generic prompts), paired with the same guard on transcode restart —
   guarding against accidental changes to a platform connection.
-- **2026-08-03** — **One advertiser per platform, locked (provisional).** The first push to a
-  platform sets its advertiser; further pushes reuse it with the advertiser field **read-only**
-  (no changing it — the backend linking is non-trivial). Each platform keeps its own. Built as
-  a distinct, reversible step — revert branch `iteration/pre-sticky-advertiser` (git commit
-  `83a614f`) restores the pre-sticky state if product review rejects it.
+- **2026-08-03** — **One advertiser per platform, locked.** The first push to a platform sets
+  its advertiser; further pushes reuse it with the field locked (no changing it — the backend
+  linking is non-trivial). Each platform keeps its own. (Confirmed by product review.)
 - **2026-08-03** — Tag editor's push button now works in **edit mode** too (**Save + Push**),
   so a tag added without pushing can be pushed later without the bulk dialog.
 - **2026-08-03** — Added an **Inactive** platform status and a **link/unlink toggle**, exposed

@@ -11,8 +11,10 @@ import {
   FormControlLabel,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useEffect, useMemo, useState } from "react";
 import { DialogHeader } from "./DialogHeader";
 import { useApp } from "../state/AppContext";
@@ -220,8 +222,10 @@ export const PushTagsDialog = ({
             options={advertisers}
             getOptionLabel={(opt) => `${opt.name} · ${opt.advertiserId}`}
             isOptionEqualToValue={(opt, val) => opt.id === val.id}
-            disabled={!platform || loadingAdvertisers}
-            readOnly={advertiserLocked}
+            // Once set, the advertiser is truly locked: the field is *disabled*
+            // (not merely read-only) and carries a lock icon + "contact support"
+            // tooltip, since re-linking a platform+advertiser is a backend op.
+            disabled={!platform || loadingAdvertisers || advertiserLocked}
             loading={loadingAdvertisers}
             fullWidth
             renderInput={(params) => (
@@ -247,6 +251,22 @@ export const PushTagsDialog = ({
                     <>
                       {loadingAdvertisers && (
                         <CircularProgress color="inherit" size={16} />
+                      )}
+                      {advertiserLocked && (
+                        <Tooltip title="This advertiser is locked. Contact support to change the advertiser for this platform.">
+                          {/* span keeps the icon hoverable inside the disabled
+                              input, so the tooltip still fires. */}
+                          <Box
+                            component="span"
+                            sx={{
+                              display: "inline-flex",
+                              pointerEvents: "auto",
+                              color: "text.secondary",
+                            }}
+                          >
+                            <LockOutlinedIcon fontSize="small" />
+                          </Box>
+                        </Tooltip>
                       )}
                       {params.InputProps.endAdornment}
                     </>
