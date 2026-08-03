@@ -159,6 +159,24 @@ export const DistrosSection = () => {
     );
   };
 
+  // Unlink from the platform → Inactive. The push target stays, so the chip reads
+  // "Inactive: Nexxen" (which platform it was unlinked from) and it can relink.
+  const handleUnlinkPlatform = (distro: Distro) => {
+    setDistrosPlatformStatus([distro.id], "inactive");
+    setSnack(
+      `"${distro.name}" unlinked${distro.pushTarget ? ` from ${distro.pushTarget.platform}` : ""}`,
+    );
+  };
+
+  // Relink an Inactive tag back to its original platform → Success (the push
+  // target is preserved, so the chip returns to "Success: Nexxen").
+  const handleRelinkPlatform = (distro: Distro) => {
+    setDistrosPlatformStatus([distro.id], "success");
+    setSnack(
+      `"${distro.name}" relinked${distro.pushTarget ? ` to ${distro.pushTarget.platform}` : ""}`,
+    );
+  };
+
   const handleApplyTranscoding = (configs: TranscodingConfig[]) => {
     const prevConfigs = state.transcoding;
     setTranscodings(configs);
@@ -283,18 +301,21 @@ export const DistrosSection = () => {
         onRestart={handleRestart}
         onSetStatus={handleSetStatus}
         onSetPlatformStatus={handleSetPlatformStatus}
+        onUnlinkPlatform={handleUnlinkPlatform}
+        onRelinkPlatform={handleRelinkPlatform}
       />
       <TagEditorDialog
         open={addOpen}
         onClose={() => setAddOpen(false)}
         onSaved={(message) => setSnack(message)}
-        onAddAndPush={handleAddAndPush}
+        onAndPush={handleAddAndPush}
       />
       <TagEditorDialog
         open={Boolean(editing)}
         editingDistro={editing}
         onClose={() => setEditing(null)}
         onSaved={(message) => setSnack(message)}
+        onAndPush={handleAddAndPush}
       />
       <PushTagsDialog
         open={pushOpen}

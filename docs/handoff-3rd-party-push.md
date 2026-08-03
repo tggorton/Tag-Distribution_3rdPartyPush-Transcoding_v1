@@ -1,6 +1,6 @@
 # Distribution Tags — 3rd-Party Push · Prototype Hand-off
 
-> **Living document (draft).** Reflects the prototype as of **2026-07-31** and will be
+> **Living document (draft).** Reflects the prototype as of **2026-08-03** and will be
 > updated as the design evolves. See the Changelog at the bottom.
 > Companion doc: **Transcoding** (`handoff-transcoding.md`).
 
@@ -92,9 +92,19 @@ a default advertiser, or an inline advertiser field in the editor.)*
 | **Pushing** | Amber | Push in flight. |
 | **Success** | Green | The platform accepted the tag. Chip names the destination — `Success: Nexxen`. |
 | **Error** | Red | The push failed **or** the platform rejected the tag. |
+| **Inactive** | Grey | Was linked to a platform, then **unlinked**. Chip keeps the platform — `Inactive: Nexxen`. |
 
 On push, the selected tags go **Pushing**, then land **Success**, with the destination
 recorded per tag (from the platform + advertiser chosen).
+
+**Unlink / Link.** Each distro row has a **link/unlink icon** in its actions (right of the
+transcode restart icon). The icon reflects **state**, and clicking it toggles:
+
+- **Success** → **link-on** icon (actively linked) → click **unlinks** → **Inactive** (push
+  target kept, so the chip reads `Inactive: Nexxen`).
+- **Inactive** or **Error** → **link-off** icon (unlinked) → click **relinks** to the
+  remembered platform → **Success**.
+- **Not pushed / Pushing** → disabled (link-off, nothing to toggle).
 
 ## In the prototype vs. For production
 
@@ -137,6 +147,10 @@ recorded per tag (from the platform + advertiser chosen).
 
 ## Changelog
 
+- **2026-08-03** — Added an **Inactive** platform status and a **link/unlink toggle**, exposed
+  as an **icon** in each distro's row actions (right of the restart icon). The icon reflects
+  state: **link-on** for Success (click unlinks → Inactive), **link-off** for Inactive/Error
+  (click relinks → Success), disabled for Not pushed / Pushing.
 - **2026-07-31** — Advertisers now show **name + advertiser ID** (`Advertiser 1 · 012345`;
   ID format is a placeholder). The push dialog's tag list also shows the **advertiser + ID
   each already-pushed tag is assigned to**.

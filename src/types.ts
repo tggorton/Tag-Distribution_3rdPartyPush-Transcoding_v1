@@ -78,8 +78,14 @@ export type DistroStatus =
  *   pushing    amber     — push in flight
  *   success    green     — the platform accepted the tag
  *   error      red       — the push failed or the platform rejected it
+ *   inactive   grey      — was linked to a platform, then unlinked
  */
-export type PlatformStatus = "notPushed" | "pushing" | "success" | "error";
+export type PlatformStatus =
+  | "notPushed"
+  | "pushing"
+  | "success"
+  | "error"
+  | "inactive";
 
 export interface Distro {
   id: string;

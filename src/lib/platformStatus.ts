@@ -31,6 +31,12 @@ export const PLATFORM_STATUS_META: Record<
     color: "error.main",
     description: "Error — the push failed or the platform rejected the tag.",
   },
+  inactive: {
+    label: "Inactive",
+    color: "text.disabled",
+    description:
+      "Inactive — unlinked from its platform. Push again to relink.",
+  },
 };
 
 export const PLATFORM_STATUS_ORDER: PlatformStatus[] = [
@@ -38,6 +44,7 @@ export const PLATFORM_STATUS_ORDER: PlatformStatus[] = [
   "pushing",
   "success",
   "error",
+  "inactive",
 ];
 
 export const DEFAULT_PLATFORM_STATUS: PlatformStatus = "notPushed";

@@ -83,9 +83,9 @@ interface Props {
   editingDistro?: Distro | null;
   onClose: () => void;
   onSaved?: (message: string) => void;
-  /** Add mode only: create the distro and hand it to the push flow, locked to
-   *  the tag's platform (its family). Omit to hide the "Add + Push" button. */
-  onAddAndPush?: (distro: Distro) => void;
+  /** Save the distro (add or update) and hand it to the push flow, locked to the
+   *  tag's platform (its family). Powers "Add + Push" / "Save + Push"; omit to hide it. */
+  onAndPush?: (distro: Distro) => void;
 }
 
 export const TagEditorDialog = ({
@@ -93,7 +93,7 @@ export const TagEditorDialog = ({
   editingDistro,
   onClose,
   onSaved,
-  onAddAndPush,
+  onAndPush,
 }: Props) => {
   const { state, addDistro, updateDistro, nextDistributionId } = useApp();
   const catalog = state.paramsCatalog;
@@ -202,18 +202,20 @@ export const TagEditorDialog = ({
     platformStatus: "notPushed",
   });
 
+  const buildUpdatedDistro = (): Distro => ({
+    ...editingDistro!,
+    name: form.name.trim(),
+    family: form.family,
+    region: form.region,
+    selectedParams: form.selectedParams,
+    selectedCreativeParams: form.selectedCreativeParams,
+    customKeyValues: form.customKeyValues,
+  });
+
   const handleSubmit = () => {
     if (!requireName()) return;
     if (isEditMode && editingDistro) {
-      updateDistro({
-        ...editingDistro,
-        name: form.name.trim(),
-        family: form.family,
-        region: form.region,
-        selectedParams: form.selectedParams,
-        selectedCreativeParams: form.selectedCreativeParams,
-        customKeyValues: form.customKeyValues,
-      });
+      updateDistro(buildUpdatedDistro());
       onSaved?.(`Updated "${form.name.trim()}"`);
     } else {
       const distro = buildNewDistro();
@@ -223,13 +225,20 @@ export const TagEditorDialog = ({
     onClose();
   };
 
-  // Add the tag, then hand it straight to the push flow (locked to its platform).
-  // No "Added" toast here — the push dialog is the feedback.
-  const handleAddAndPush = () => {
+  // Save the tag (add or update), then hand it to the push flow (platform locked
+  // to its family). Available in both modes so a tag can be pushed any time — no
+  // "saved" toast here, the push dialog is the feedback.
+  const handleSubmitAndPush = () => {
     if (!requireName()) return;
-    const distro = buildNewDistro();
-    addDistro(distro);
-    onAddAndPush?.(distro);
+    let distro: Distro;
+    if (isEditMode && editingDistro) {
+      distro = buildUpdatedDistro();
+      updateDistro(distro);
+    } else {
+      distro = buildNewDistro();
+      addDistro(distro);
+    }
+    onAndPush?.(distro);
     onClose();
   };
 
@@ -374,15 +383,17 @@ export const TagEditorDialog = ({
         <Button onClick={handleSubmit} sx={{ color: "primary.main" }}>
           {submitLabel}
         </Button>
-        {!isEditMode && onAddAndPush && pushPlatform && (
-          <Tooltip title={`Adds the tag, then opens push locked to ${pushPlatform.name}`}>
+        {onAndPush && pushPlatform && (
+          <Tooltip
+            title={`${isEditMode ? "Saves" : "Adds"} the tag, then opens push locked to ${pushPlatform.name}`}
+          >
             <Button
-              onClick={handleAddAndPush}
+              onClick={handleSubmitAndPush}
               variant="contained"
               color="primary"
               sx={{ borderRadius: 1 }}
             >
-              Add + Push
+              {isEditMode ? "Save + Push" : "Add + Push"}
             </Button>
           </Tooltip>
         )}

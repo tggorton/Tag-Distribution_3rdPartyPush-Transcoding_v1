@@ -14,6 +14,8 @@ import {
   Typography,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import LinkIcon from "@mui/icons-material/Link";
+import LinkOffIcon from "@mui/icons-material/LinkOff";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { useState, type MouseEvent } from "react";
@@ -40,6 +42,8 @@ interface Props {
    */
   onSetStatus: (distro: Distro, status: DistroStatus) => void;
   onSetPlatformStatus: (distro: Distro, status: PlatformStatus) => void;
+  onUnlinkPlatform: (distro: Distro) => void;
+  onRelinkPlatform: (distro: Distro) => void;
 }
 
 const platformSuffix = (distro: Distro) =>
@@ -55,6 +59,8 @@ export const DistroTable = ({
   onRestart,
   onSetStatus,
   onSetPlatformStatus,
+  onUnlinkPlatform,
+  onRelinkPlatform,
 }: Props) => {
   const { state } = useApp();
   const catalog = state.paramsCatalog;
@@ -124,6 +130,23 @@ export const DistroTable = ({
             const restartable = d.transcodes.some((t) =>
               isRestartable(t.status),
             );
+            // Link icon reflects STATE: a successful push shows the linked
+            // (link-on) icon and can be unlinked; Error / Inactive show the
+            // unlinked (link-off) icon and can be relinked to their remembered
+            // target. Not pushed / Pushing → disabled.
+            const linkedOn = d.platformStatus === "success";
+            const canRelink =
+              (d.platformStatus === "inactive" ||
+                d.platformStatus === "error") &&
+              Boolean(d.pushTarget);
+            const linkEnabled = linkedOn || canRelink;
+            const linkTip = linkedOn
+              ? `Unlink from ${d.pushTarget?.platform ?? "platform"}`
+              : canRelink
+                ? `Link to ${d.pushTarget?.platform ?? "platform"}`
+                : d.platformStatus === "pushing"
+                  ? "Pushing…"
+                  : "Not pushed — nothing to link";
             return (
               <TableRow key={d.id} hover>
                 <TableCell sx={{ maxWidth: 200 }}>
@@ -189,6 +212,24 @@ export const DistroTable = ({
                           sx={{ color: "text.secondary" }}
                         >
                           <RestartAltIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    <Tooltip title={linkTip}>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() =>
+                            linkedOn ? onUnlinkPlatform(d) : onRelinkPlatform(d)
+                          }
+                          disabled={!linkEnabled}
+                          sx={{ color: "text.secondary" }}
+                        >
+                          {linkedOn ? (
+                            <LinkIcon fontSize="small" />
+                          ) : (
+                            <LinkOffIcon fontSize="small" />
+                          )}
                         </IconButton>
                       </span>
                     </Tooltip>
