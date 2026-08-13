@@ -28,6 +28,44 @@ Stack: React + TypeScript + MUI. Runs at `localhost:5174` (`npm run dev`).
   status" block so a reviewer can force any state (e.g. show an error) during a walkthrough.
   It disappears once the real push API drives status.
 
+## Feature inventory
+
+Everything the 3rd-Party Push track adds, at a glance — each is detailed in the sections
+below.
+
+**Pushing tags**
+- **Push Tags to Platform** dialog — pick a platform + advertiser, choose which tags, push.
+- **Platform-drives-selection** — choosing a platform auto-selects that platform's tags and
+  disables the rest; switching platforms swaps the selection.
+- **family→platform lock** — a tag can only be pushed to the platform it was built for (its
+  `family`); one push targets exactly one platform.
+- **Partial push** — uncheck any of a platform's tags before pushing; a live "N of M selected"
+  count and a count-aware button (`Push 3 Tags`).
+- **Add + Push / Save + Push** — push straight from the tag editor (in both create and edit
+  mode), opening the flow pre-scoped to that tag's platform + that one tag.
+
+**Advertiser model**
+- **Platform-scoped advertisers** — each platform returns its own advertiser set; the
+  advertiser dropdown is dependent on the platform (platform must be chosen first).
+- **Name + ID display** — `Advertiser 1 · 012345` (ID format is a placeholder).
+- **One advertiser per platform, locked** — the first push sets it; after that the field is
+  **disabled** (not just read-only), greyed, with a **lock icon** + a *contact support*
+  tooltip. Each platform keeps its own.
+- **Async load with a stale-response guard** so a slow reply can't overwrite a newer
+  platform's list.
+
+**Platform Status (per distro)**
+- A dedicated **Platform Status** column, fully independent of Transcode Status, rendered by
+  the shared `StatusChip`.
+- Five states — Not pushed / Pushing / Success / Error / Inactive — with the chip naming the
+  destination (`Success: Nexxen`).
+- **Link / Unlink row icon** — unlink a Success tag → Inactive (keeps the target); relink an
+  Inactive/Error tag → Success. Both **confirm first**.
+
+**Prototype-only affordances (gone in production)**
+- `⋯` menu "Set platform status" block to force any state during a walkthrough.
+- Optimistic push (always lands Success) and mocked advertiser lists.
+
 ## What it does
 
 **Push Tags to Platform** (button in the Distributions section, disabled until at least one
@@ -132,6 +170,54 @@ generic ("…for this distribution?"), not platform-specific.
 | Error/rejection shown only via the `⋯` "Set platform status" affordance. | Surface **rejection reasons** and a retry path on Error. |
 | Only the **last** push target + status is kept per tag. | Persist **push history** (platform, advertiser, timestamp, outcome). |
 
+## Implementation map (for the build team)
+
+Where each piece lives today. All state is a single `useReducer` in
+[`../src/state/AppContext.tsx`](../src/state/AppContext.tsx), persisted to `localStorage`
+(`radius.adtags.v1`); components call helpers off `useApp()` and never `dispatch` directly.
+Domain logic in `src/lib/` is pure (no React imports).
+
+**Types** ([`../src/types.ts`](../src/types.ts))
+- `PlatformStatus = "notPushed" | "pushing" | "success" | "error" | "inactive"`.
+- `Distro.platformStatus: PlatformStatus` — the per-distro status.
+- `Distro.pushTarget?: { platform; advertiser; advertiserId? }` — the last destination; drives
+  the chip suffix (`Success: Nexxen`) and the relink action.
+- `AppState.platformAdvertisers: Record<platformId, { id; name; advertiserId }>` — the locked
+  advertiser per platform (the "one advertiser per platform" rule).
+
+**Domain logic**
+- [`../src/lib/pushTargets.ts`](../src/lib/pushTargets.ts) — `PUSH_PLATFORMS`,
+  `platformForFamily(family)`, `PlatformAdvertiser`, and `fetchPlatformAdvertisers(platformId)`
+  (mock async — **the swap point for the real per-platform advertiser API**).
+- [`../src/lib/platformStatus.ts`](../src/lib/platformStatus.ts) — `PLATFORM_STATUS_META`
+  (dot color / label / description per state), `PLATFORM_STATUS_ORDER`,
+  `DEFAULT_PLATFORM_STATUS`.
+
+**State / reducer** ([`../src/state/AppContext.tsx`](../src/state/AppContext.tsx))
+- `setDistrosPlatformStatus(ids, status, target?)` — bulk-set status and record the target.
+- `rememberPlatformAdvertiser(platformId, advertiser)` — sets the locked advertiser (first push
+  only). Persisted under `platformAdvertisers`.
+
+**Components**
+- [`../src/components/PushTagsDialog.tsx`](../src/components/PushTagsDialog.tsx) — the push
+  dialog: platform-drives-selection, the disabled+locked advertiser field (lock icon + tooltip),
+  the stale-guarded advertiser fetch.
+- [`../src/components/DistroTable.tsx`](../src/components/DistroTable.tsx) — the Platform Status
+  column and the link/unlink row icon (state → icon, confirm → toggle).
+- [`../src/components/DistrosSection.tsx`](../src/components/DistrosSection.tsx) — `handlePush`,
+  `handleUnlinkPlatform`, `handleRelinkPlatform`.
+- [`../src/components/TagEditorDialog.tsx`](../src/components/TagEditorDialog.tsx) — Add + Push /
+  Save + Push (via the `onAndPush` callback).
+- [`../src/components/StatusChip.tsx`](../src/components/StatusChip.tsx) — the shared
+  dot + label + suffix chip (also used by Transcode Status).
+
+**Backend swap points**
+1. `fetchPlatformAdvertisers` → the real advertiser API (per-platform, independently authed).
+2. `handlePush`'s optimistic `pushing → success` → the real push API returning
+   success / error / rejection. The UI already models `pushing → success/error`, so only the
+   data source changes.
+3. Add **push-history** persistence — today only the last target + status is kept per distro.
+
 ## Open questions for the team
 
 1. **Do SSPs use "advertisers," or a different association?** Supply-side may bind to a
@@ -164,6 +250,9 @@ generic ("…for this distribution?"), not platform-specific.
 
 ## Changelog
 
+- **2026-08-13** — **Expanded for the build team.** Added a **Feature inventory** (every
+  unique behavior at a glance) and an **Implementation map** (types, domain logic, state
+  actions, components, and the backend swap points). No behavior change — documentation only.
 - **2026-08-03** — **Locked advertiser is now fully disabled.** Once an advertiser is set for a
   platform, the field is **disabled** (not just read-only), with a **lock icon** and a tooltip
   directing the user to **contact support** to change it — making clear it's a support

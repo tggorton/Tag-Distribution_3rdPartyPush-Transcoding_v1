@@ -30,6 +30,49 @@ Stack: React + TypeScript + MUI. Runs at `localhost:5174` (`npm run dev`).
   status" block so a reviewer can force any state during a walkthrough. It disappears once the
   real backend drives status.
 
+## Feature inventory
+
+Everything the Transcoding track adds, at a glance — each is detailed in the sections below.
+
+**Applying presets**
+- **Transcoding Settings** modal — a per-line-item sheet that applies **one or more presets**;
+  every distro is transcoded **once per preset**.
+- **~15 fields** grouped Video / Audio (mirroring a publisher delivery spec), shared by every
+  preset — presets differ only in *values*, never in which fields exist.
+- **Collapsible preset rows** — collapsed by default; expand a row to view/edit its fields.
+- **+ Add Preset** — inserts a new row at the top and scrolls to it; rows are separated by
+  hairline dividers (no boxed cards).
+- **Per-line-item overrides** — editing a field is a one-off for this line-item and **never
+  mutates the preset**; a "Modified" chip flags a diverged row.
+- **Incremental apply** — only new or changed presets reprocess; unchanged presets keep each
+  distro's current status.
+- **Delete a preset** — dropping one of several is immediate; deleting the **last** confirms →
+  resets to the Default baseline (which always remains — it's the floor).
+
+**Presets & the admin catalog**
+- Presets are **publisher specs** (Hulu from a real sheet; ~23 CTV pubs illustrative). DSPs are
+  **push targets, not presets**.
+- **Mutable admin catalog** — admin pencil beside the preset picker → Save New / Update /
+  Delete. The `Default` baseline is protected (not editable or deletable).
+- The **Default baseline reads as "not set"** — muted picker, no floating label — distinct from
+  an official preset selection.
+
+**Transcode Status (per distro)**
+- A dedicated **Transcode Status** column, fully independent of Platform Status, rendered by the
+  shared `StatusChip`.
+- Six states — Default (green ring) / Live / Processing / Error / Out of Spec (orange) /
+  Inactive — where color alone never carries meaning (ring-vs-solid + label).
+- **One chip per applied preset**, stacked; each names its publisher (`Live: Hulu (Disney)`),
+  shortening to `Live: Hulu` on narrow screens.
+- **Landing logic** — a config lands `outOfSpec` if hand-edited, `default` if it's the untouched
+  baseline, otherwise `live`. New tags inherit the line-item's current plan.
+- **Restart row icon** — re-transcodes the whole plan; enabled **only** when a transcode is
+  Inactive or Error (never re-runs Out-of-Spec overrides); confirms first.
+
+**Prototype-only affordances (gone in production)**
+- `⋯` menu "Set transcode status" block to force any state during a walkthrough.
+- `Processing → landing` is a fixed timer (`RESTART_SIMULATION_MS`), a stand-in for the pipeline.
+
 ## What it does
 
 **Transcoding Settings** (button in the Distributions section, available to all users) opens
@@ -107,6 +150,55 @@ affordance forces **all** of a tag's transcodes to one status (prototype only).
 | Catalog edits persist to localStorage. | Persist the admin **preset catalog** server-side with real auth. |
 | Backend does not exist. | The **backend owns the transcode lifecycle** — the UI reflects state and offers restart. |
 
+## Implementation map (for the build team)
+
+Same architecture as the Push track — one `useReducer` in
+[`../src/state/AppContext.tsx`](../src/state/AppContext.tsx), `localStorage`-persisted, helpers
+off `useApp()`, pure logic in `src/lib/` (no React imports).
+
+**Types** ([`../src/types.ts`](../src/types.ts))
+- `DistroStatus = "default" | "live" | "processing" | "error" | "outOfSpec" | "inactive"`.
+- `DistroTranscode = { presetId; status: DistroStatus }`; `Distro.transcodes: DistroTranscode[]`
+  — one entry per applied preset (replaced a single `status`, with a migration).
+- `TranscodingConfig = { presetId; settings }` — a row in the line-item plan;
+  `AppState.transcoding: TranscodingConfig[]`.
+- `TranscodePreset` (id, name, settings, …); `AppState.transcodePresets: TranscodePreset[]` —
+  the mutable admin catalog.
+
+**Domain logic**
+- [`../src/lib/transcodePresets.ts`](../src/lib/transcodePresets.ts) — `TRANSCODE_FIELDS` (the
+  shared field sheet), `SEED_TRANSCODE_PRESETS`, `DEFAULT_PRESET_ID`, `isProtectedPreset`, and
+  the preset-aware helpers `findPreset`, `settingsEqual`, `isCustomTranscoding`,
+  `transcodeLandingStatus`, `transcodePublisher`, `describeTranscodings` (each takes the presets
+  array as an argument — pass `state.transcodePresets`).
+- [`../src/lib/distroStatus.ts`](../src/lib/distroStatus.ts) — `STATUS_META` (dot color / label /
+  description / `outlined` per state), `STATUS_ORDER`, `isRestartable`, and
+  `RESTART_SIMULATION_MS` (the prototype Processing→landing timer).
+
+**State / reducer** ([`../src/state/AppContext.tsx`](../src/state/AppContext.tsx))
+- `setTranscodings(configs)` — set the line-item plan (drives the incremental-apply diff).
+- `setDistroTranscodes` / `setDistrosTranscodes` — set one / many distros' per-preset statuses.
+- Preset CRUD — add / update / delete transcode presets (`Default` protected).
+
+**Components**
+- [`../src/components/TranscodingSettingsDialog.tsx`](../src/components/TranscodingSettingsDialog.tsx)
+  — the apply modal (collapsible rows, + Add Preset, incremental apply).
+- [`../src/components/ManageTranscodePresetsDialog.tsx`](../src/components/ManageTranscodePresetsDialog.tsx)
+  — the admin catalog manager (Save New / Update / Delete).
+- [`../src/components/TranscodeFieldsGrid.tsx`](../src/components/TranscodeFieldsGrid.tsx) — the
+  shared Video/Audio field sheet, used by both dialogs.
+- [`../src/components/DistroTable.tsx`](../src/components/DistroTable.tsx) — the Transcode Status
+  column (stacked chips) + the restart row icon.
+- [`../src/components/StatusChip.tsx`](../src/components/StatusChip.tsx) — the shared chip (also
+  used by Platform Status).
+
+**Backend swap points**
+1. The `Processing → landing` timer (`RESTART_SIMULATION_MS`) → the real transcode pipeline;
+   status arrives via webhook/poll. The backend owns the lifecycle; the UI reflects it.
+2. Preset catalog persistence → server-side with real auth (today localStorage).
+3. Per-publisher **option constraints** → validate overrides against the target pub's real spec
+   (today the field options are a flat superset with no per-pub constraint).
+
 ## Open questions for the team
 
 1. **Should editing a preset re-flag line items that already used it?** A line item snapshots
@@ -142,6 +234,9 @@ affordance forces **all** of a tag's transcodes to one status (prototype only).
 
 ## Changelog
 
+- **2026-08-13** — **Expanded for the build team.** Added a **Feature inventory** (every unique
+  behavior at a glance) and an **Implementation map** (types, domain logic, state actions,
+  components, and the backend swap points). No behavior change — documentation only.
 - **2026-08-03** — **Dropped the Distributions section subheading.** The line-item's transcode
   plan was echoed as a `Transcoding: …` subtitle under the section title; it's redundant now
   that each distro's Transcode Status column shows a chip per applied preset, so the subheading

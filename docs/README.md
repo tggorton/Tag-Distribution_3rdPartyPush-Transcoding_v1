@@ -11,6 +11,11 @@ at the bottom; update the date and add an entry when you change one.
 | **3rd-Party Push** | [handoff-3rd-party-push.md](handoff-3rd-party-push.md) | Pushing tags to a platform (DSP/SSP), per-distro selection, **Platform Status** |
 | **Transcoding** | [handoff-transcoding.md](handoff-transcoding.md) | Per-line-item transcode settings, publisher presets, admin catalog, **Transcode Status** |
 
+**Build order:** the team takes **3rd-Party Push first**, then Transcoding. Each doc now
+opens with a **Feature inventory** (every unique behavior at a glance) and — near the end —
+an **Implementation map** (types, domain logic, state actions, components, and the backend
+swap points) for whoever builds the real thing.
+
 Each doc is self-contained: behavior → status states → *prototype vs. production* → open
 questions → walkthrough → limitations.
 
