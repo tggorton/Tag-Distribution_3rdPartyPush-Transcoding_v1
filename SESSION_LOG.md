@@ -26,9 +26,25 @@ The user (UX/UI designer) wanted to build an interactive React prototype demonst
 
 **Stack:** Vite + React 18 + TypeScript + MUI v5, state via React Context + reducer, persisted to `localStorage`. Single page (no router). Built from scratch with Figma + a previous project ([`line-item-multi-creative`](https://github.com/tggorton/Line-Item-Multi-Creative)) as visual references.
 
-**Production destination:** [`tggorton/Ad-Tag-Export-Management`](https://github.com/tggorton/Ad-Tag-Export-Management) on GitHub. Pushed via temporary PATs (revoked after each use). Local development on `main`; pushes happen explicitly when the user authorizes.
+**Production destination (updated 2026-07-28):** the original prototype lived at
+[`tggorton/Ad-Tag-Export-Management`](https://github.com/tggorton/Ad-Tag-Export-Management).
+When the project expanded into the **Transcoding + 3rd-Party Push** feature line (see
+Sessions 8+ below), the user moved active work to a **new** repo,
+[`tggorton/Tag-Distribution_3rdPartyPush-Transcoding_v1`](https://github.com/tggorton/Tag-Distribution_3rdPartyPush-Transcoding_v1),
+keeping the original untouched. The git **history is continuous** — the new repo
+contains the full old history; only the remote changed. Locally: `origin` = the new
+repo, `old-origin` = the original. Pushed via temporary PATs (revoked after each use).
+Local development on `main`; pushes happen explicitly when the user authorizes.
+See [`docs/RESUME.md`](docs/RESUME.md) for the full pick-up guide (repo settings,
+what transfers across a Claude-account switch, how to run).
 
 **Reference materials kept in-tree:** `_Code-Reference/` (Figma JSON exports + raw HTML snippets) and `_Image-Reference/` (screenshots of every dialog state). Both committed alongside source as durable design artifacts; they're not part of the build.
+
+> **Two chapters.** Sessions 1–6 built the original **tag + template** tool (distros,
+> admin templates, advertiser scoping, mutable param catalog). Sessions 7–12 added
+> two new tracks — **Transcoding** and **3rd-Party Push** — each with its own status
+> column, and moved the work to the new repo. If you only need the recent feature
+> line, jump to Session 8.
 
 ---
 
@@ -249,6 +265,181 @@ The rule is uniqueness on the **(name, advertiserId) tuple**, not just name. Imp
 
 ---
 
+### 2026-05-12 — Session 7: Mutable region catalog
+
+**Commit:** `c8978a8` (12:10).
+
+**Regions became mutable admin state.** Until now the region radio (US-East-1 /
+Australia / Europe) was static metadata. The user wanted admins to manage regions the
+same way they manage params — so region moved into `AppState` as `{ name, baseUrl }`
+per region, with a `ManageRegionsDialog` (Add / edit / delete) reached via the same
+admin pencil pattern, and a `migrateEntityRegion` migration in `loadFromStorage` for
+existing saves. This is small on its own but it **cemented the "mutable seeded
+catalog" pattern** — seed constant → state array → reducer CRUD → localStorage
+migration — that every later catalog (transcode presets especially) reuses.
+`ManageRegionsDialog` is now the canonical small-dialog example cited in
+[`../CLAUDE.md`](../CLAUDE.md).
+
+---
+
+### 2026-07-15 — Session 8: The pivot — Push, Transcode Status, transcoding presets, design sweep
+
+**Commits:** `b74e481` (15:43, the big checkpoint), `2d8dec4` (15:46).
+
+This is where the project's second chapter opens. The user came back wanting two new
+capabilities layered onto the tag tool, plus a consistency sweep. `b74e481` is a large
+checkpoint commit; the narrative below is reconstructed from it, the follow-ups, and
+the end-state captured in [`../CLAUDE.md`](../CLAUDE.md).
+
+**"Platform," not "DSP."** When naming the push-target concept, the user deliberately
+chose **Platform** over DSP: today a target is a DSP (Nexxen, The Trade Desk), but the
+naming has to span **SSPs** too when they arrive. Codified in CLAUDE.md so nobody
+narrows it back to "DSP" later. Also renamed *Export distribution tags* → **Export
+Tags**.
+
+**Distro Transcode Status + restart.** Introduced the status lifecycle the backend
+will eventually own: `default` (green ring), `live` (green), `processing` (amber),
+`error` (red), `outOfSpec` (orange), `inactive` (grey). Two visual-design calls the
+user drove: **out-of-spec is orange, not red** — it's a *config* problem, not a *run*
+failure, and must read differently from Error; and **`default` (green ring) vs `live`
+(solid green)** are told apart by ring-vs-fill, not hue, so the label can never be
+dropped. "cold" was renamed **inactive**. Restart is valid only from `inactive` and
+`error` (never re-run overridden settings that produced `outOfSpec`).
+
+**Transcoding presets + admin CRUD.** A per-line-item settings sheet (`TRANSCODE_FIELDS`,
+mirroring a publisher delivery spec) with presets that are **publisher** specs — Hulu
+from a real sheet the user supplied, the rest illustrative and marked as such. DSPs are
+push targets, *not* transcode presets. Presets are mutable admin state
+(`SEED_TRANSCODE_PRESETS`), following the Session-7 catalog pattern; the `default`
+baseline is protected.
+
+**Admin entry points moved into modals (`2d8dec4`).** The user rejected top-level admin
+buttons in favor of a **pencil next to the relevant dropdown inside a modal**. Template
+management moved from a header button to a pencil in the Tag Editor; preset management
+is a pencil in Transcoding Settings. This is now a hard convention in CLAUDE.md — new
+admin catalog managers hang off a dropdown pencil, never a Distributions-header button.
+
+**Dialog design sweep.** A consistency pass over dialogs: shared `DialogHeader`
+(primary/sub tiers), the promise-based `useConfirm`/`ConfirmDialog` (no
+`window.confirm` — it breaks the dark theme), `sx`-only styling with theme tokens, no
+hardcoded hex. These rules are the "Conventions" section of CLAUDE.md.
+
+---
+
+### 2026-07-27 → 07-28 — Session 9: Platform Status column + split hand-off docs
+
+**Commits:** `f21c062` (07-27 12:54), `958370e` (07-28 09:23), `ba869a7` (07-28 09:24).
+
+**A second, independent status column.** The push lifecycle got its own column —
+`Platform Status` (`notPushed` grey-ring, `pushing` amber, `success` green, `error`
+red, later `inactive`) — rendered by the same shared `StatusChip` as Transcode Status.
+The first column was renamed **Transcode Status** so the two read as distinct
+lifecycles: a tag can be Live but never pushed, or pushed and rejected. Added the
+per-distro push selection and the dependent **Platform → Advertiser** dropdowns
+(advertisers are platform-scoped, so Platform must be chosen first).
+
+**Hand-off docs, split by feature.** The user wanted shareable overviews for team
+review / a job ticket, kept as **living documents**: `docs/handoff-transcoding.md` and
+`docs/handoff-3rd-party-push.md`, plus an index `docs/README.md`. Each doc is
+self-contained (behavior → status states → prototype-vs-production → open questions →
+walkthrough → limitations) with its own dated Changelog. Visual (Artifact) versions
+came later — see [`RESUME.md`](docs/RESUME.md) for their URLs and ownership caveat.
+
+---
+
+### 2026-07-30 → 07-31 — Session 10: Push model settled + multi-preset transcoding + incremental apply
+
+**Commits:** `0cad697` (07-30 15:42), `24cc1ce` (07-30 22:25), `14ccc47` (07-31 12:45).
+
+**The push UI model settled on "platform drives selection" (`0cad697`).** A tag is
+built for one platform (its `family`) and can only be pushed there. After trying a
+**bidirectional lock** (selecting tags narrowed the platform picker), the user landed
+on the cleaner model: the platform picker always lists every platform, and **choosing a
+platform auto-selects that platform's tags** (disabling the rest). Switch platform →
+selection swaps. Also added **Add + Push** in the tag editor (create a tag and open push
+pre-scoped). This decision is important enough that it's saved to Claude memory
+(`push-multi-platform-ui-open.md`): *don't reintroduce the bidirectional lock.*
+
+**Multiple presets per line-item (`24cc1ce`).** The biggest data-model change of the
+chapter: a line-item now applies a **list** of presets, and every distro is transcoded
+**once per preset**. `Distro.status` (single) became `Distro.transcodes:
+{presetId, status}[]`, with a migration. The Transcode Status column shows a **stack of
+chips**, one per preset (e.g. `Live: Hulu (Disney)` over `Out of Spec: Netflix`). The
+modal became collapsible preset rows with **+ Add Preset** (inserts at top + scrolls to
+it), hairline dividers instead of boxed cards, and a muted "not-active" styling for a
+row still on the Default baseline. Deleting the last preset confirms → resets to Default.
+
+**Incremental apply + advertiser name/ID (`14ccc47`).** Applying now reprocesses **only
+new or changed presets** — an unchanged preset keeps each distro's current status; a
+newly added or edited preset goes Processing → its landing status. So adding "Netflix"
+to an already-applied "Hulu, ABC, Peacock" reprocesses only Netflix. Advertisers now
+display as **name + ID** (`Advertiser 3 · 012345`).
+
+---
+
+### 2026-08-03 — Session 11: Link/unlink, advertiser lock, confirmations
+
+**Commits:** `83a614f` (14:04), `bf97c74` (15:21), `666e177` (15:45), `6e0e618` (15:56).
+
+**Link/unlink as a first-class row action (`83a614f`).** Unlinking a pushed tag sets
+Platform Status to **Inactive** (keeping the target, so the chip reads `Inactive:
+Nexxen`); re-linking restores **Success**. The toggle was promoted out of the `⋯` menu
+to an **exposed row icon** (MUI `Link` / `LinkOff`) right of the restart icon. Icon
+orientation was initially backwards; the user's rule: **Success → link-on**, **Error /
+Inactive → link-off**. Also added **Save + Push** in *edit* mode, closing the gap where
+a tag added-without-pushing had no easy per-tag push later.
+
+**Sticky, then locked, advertiser (`bf97c74`).** First the advertiser became sticky per
+platform (remember the last one). Then the user asked to truly **lock** it: *"nexxen
+could never have more than one advertiser association per line item."* One advertiser
+per platform per line-item; the first push sets it, later pushes reuse it. Rationale:
+backend platform+advertiser linking is non-trivial, so it shouldn't churn. Same commit
+added **confirmations** before restart, re-link, **and** unlink — with the user's
+explicit steer to keep the wording **generic**, not per-platform-dynamic (*"all warning
+dialogues would have to be dynamic and match with each platform — that is
+overcomplicated"*).
+
+**Fully-disabled locked advertiser (`666e177`).** A refinement the user noticed later:
+read-only wasn't enough — the locked advertiser field is now **disabled** (greyed,
+un-focusable), with a MUI `LockOutlined` icon at its right edge and a tooltip directing
+the user to **contact support** to change it. Makes clear it's a support operation, not
+a self-serve control. (The user specifically verified the icon was a genuine MUI icon.)
+
+**Removed the redundant Transcoding subheading (`6e0e618`).** The Distributions section
+title carried a `Transcoding: <presets>` subtitle echoing the line-item plan. Redundant
+now that each distro's Transcode Status column shows a chip per preset — so the
+subheading (and the section's only subtitle) was removed.
+
+---
+
+### 2026-08-13 — Session 12: Continuity hand-off for the Claude-account switch
+
+**Commit:** doc-only (this entry, `RESUME.md`, and the log updates).
+
+The user is **migrating from a personal Claude connection to a Team account** and wanted
+to guarantee that the repo, commit settings, and full project context survive the switch
+with nothing lost when future work resumes under the new client.
+
+- **`docs/RESUME.md` created** — the single pick-up entry point: what transfers across a
+  Claude-account switch and what doesn't (repo/git = on-disk, transfers automatically;
+  chat history = does not; Artifacts = owned by the old account, must be republished;
+  file-memory = machine-local), plus repo settings, run/typecheck/reset commands, and
+  current state + next steps.
+- **`SESSION_LOG.md` + `TIME_LOG.md` brought current** — this whole second chapter
+  (Sessions 7–12, commits `c8978a8`…`6e0e618`) had never been logged; the last entry was
+  Session 6 on the old repo. Commit reference table extended to all 25 commits.
+- **Hand-off Artifacts** — earlier in the run, the two visual hand-off pages were
+  enhanced with UI-mockup "storyboards" and realigned to the **real dark-app palette**
+  (bare `StatusChip` dots not pills, the actual five-column table, MUI outlined fields,
+  the disabled+lock advertiser field). They remain owned by the old account; RESUME.md
+  documents rebuilding them under the new one.
+
+**Why it matters:** this session produced no feature code — it's the bridge that makes
+the account switch safe. If you're reading this as the first session under the new
+account: [`docs/RESUME.md`](docs/RESUME.md) is your starting point.
+
+---
+
 ## Future considerations
 
 These are user-flagged items or implementation seams that are **not** part of the current build but that the structure should accommodate cleanly when they come up.
@@ -324,6 +515,24 @@ All commits on `main`, since project start.
 | 9 | `12b4306` | 05-05 15:04 | Split admin template management into dedicated dialog; mutable param catalog |
 | 10 | `432898e` | 05-05 15:31 | Notify and auto-scroll on param add/remove in ManageParamsDialog |
 | 11 | `82c50a5` | 05-06       | Enforce (name, advertiser) uniqueness on templates; add TIME_LOG / SESSION_LOG / log-time skill |
+| 12 | `de5a1f7` | 05-06 12:12 | TIME_LOG + SESSION_LOG: append Session 6 entries |
+| 13 | `c8978a8` | 05-12 12:10 | Mutable region catalog (name + baseUrl per region, admin CRUD) |
+| 14 | `b74e481` | 07-15 15:43 | Checkpoint: push-to-platform, distro status + restart, transcoding presets/admin CRUD, dialog design sweep |
+| 15 | `2d8dec4` | 07-15 15:46 | Move admin template management from header button to in-modal edit icon |
+| 16 | `f21c062` | 07-27 12:54 | Add Platform Status column and per-distro push selection |
+| 17 | `958370e` | 07-28 09:23 | docs: add split hand-off overviews (Transcoding, 3rd-Party Push) |
+| 18 | `ba869a7` | 07-28 09:24 | docs: add index README linking the two hand-off overviews |
+| 19 | `0cad697` | 07-30 15:42 | 3rd-Party Push: family→platform lock, Add + Push, platform-drives-selection |
+| 20 | `24cc1ce` | 07-30 22:25 | Transcoding: apply multiple presets per line-item, status per preset |
+| 21 | `14ccc47` | 07-31 12:45 | Incremental transcode apply + advertiser name/ID |
+| 22 | `83a614f` | 08-03 14:04 | Push: link/unlink row icon + Inactive status + Save + Push in edit mode |
+| 23 | `bf97c74` | 08-03 15:21 | 3rd-Party Push: lock advertiser per platform + confirm link/unlink |
+| 24 | `666e177` | 08-03 15:45 | 3rd-Party Push: fully disable locked advertiser with lock icon + support tooltip |
+| 25 | `6e0e618` | 08-03 15:56 | Distributions: remove redundant transcoding subheading |
+
+> Active work moved to the new repo (`Tag-Distribution_3rdPartyPush-Transcoding_v1`)
+> around the hand-off-docs commits (07-28); the history above is continuous and lives
+> in full on both remotes' shared ancestry. See [`docs/RESUME.md`](docs/RESUME.md).
 
 ---
 

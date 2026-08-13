@@ -191,6 +191,76 @@ Commit: `82c50a5`.
 | Push (`82c50a5`, single commit covering all the above) + this time-log + session-log update | 3m | 6m | |
 | **Session subtotal** | **~37m** | **~58m** | Sparse session by commit count (one push at end of day). Bulk of AI Work was long-form doc generation (TIME_LOG + SESSION_LOG + skill); the uniqueness validation was a smaller code change at the end. |
 
+> **Chapter 2 note (Sessions 7–12).** These sessions were logged in arrears on
+> 2026-08-13 (see Session 12). Figures are reconstructed from commit cadence + the
+> narrative in `SESSION_LOG.md` rather than live per-message tracking, so treat them
+> as good-faith estimates at the same density-aware calibration as Sessions 1–6.
+
+### 2026-05-12 — Session 7: Mutable region catalog
+
+**Commit:** `c8978a8` (12:10).
+
+| Block | Prompting | AI Work | Notes |
+|---|---:|---:|---|
+| Move regions from static metadata into `AppState` (`{name, baseUrl}` per region), reducer CRUD, `ManageRegionsDialog`, `migrateEntityRegion` migration | 12m | 30m | Reused the mutable-catalog pattern; small but foundational for later preset work. |
+| **Session subtotal** | **~12m** | **~30m** | Single focused commit. |
+
+### 2026-07-15 — Session 8: The pivot — Push, Transcode Status, transcoding presets, design sweep
+
+**Commits:** `b74e481` (15:43), `2d8dec4` (15:46).
+
+| Block | Prompting | AI Work | Notes |
+|---|---:|---:|---|
+| Push Tags to Platform (dialog, platform/advertiser, per-distro send) | 14m | 40m | New feature surface. |
+| Transcode Status lifecycle + per-row restart (default/live/processing/error/outOfSpec/inactive; ring-vs-fill; out-of-spec orange; "cold"→inactive) | 16m | 40m | Several design calls (orange vs red, ring vs solid). |
+| Transcoding presets + admin CRUD (`TRANSCODE_FIELDS`, publisher specs, Hulu real / rest illustrative, protected Default) | 18m | 45m | Reused the mutable-catalog pattern. |
+| Move admin management into modals (pencil next to dropdown); dialog design sweep (shared DialogHeader, useConfirm, sx-only) | 17m | 35m | Commit `2d8dec4` + convention-setting cleanup. |
+| **Session subtotal** | **~65m** | **~160m** | Sparse density (2 close commits), but the single largest build session of chapter 2. Recalibrated ~55% off raw wall-clock. |
+
+### 2026-07-27 → 07-28 — Session 9: Platform Status column + split hand-off docs
+
+**Commits:** `f21c062` (07-27 12:54), `958370e` (07-28 09:23), `ba869a7` (07-28 09:24).
+
+| Block | Prompting | AI Work | Notes |
+|---|---:|---:|---|
+| Second independent **Platform Status** column (shared `StatusChip`); rename first column Transcode Status; per-distro push selection; dependent Platform→Advertiser dropdowns | 18m | 45m | Commit `f21c062`. |
+| Split hand-off docs (Transcoding + 3rd-Party Push) + index README | 12m | 30m | Long-form doc writing. Commits `958370e`, `ba869a7`. |
+| **Session subtotal** | **~30m** | **~75m** | Moderate density across two days. |
+
+### 2026-07-30 → 07-31 — Session 10: Push model settled + multi-preset transcoding + incremental apply
+
+**Commits:** `0cad697` (07-30 15:42), `24cc1ce` (07-30 22:25), `14ccc47` (07-31 12:45).
+
+| Block | Prompting | AI Work | Notes |
+|---|---:|---:|---|
+| family→platform lock + Add + Push + platform-drives-selection (replacing the bidirectional lock) | 16m | 35m | Commit `0cad697`. Settled UI model (saved to memory). |
+| Multiple presets per line-item: `Distro.status` → `transcodes[]`, stacked chips, collapsible rows, + Add Preset (top + scroll), dividers, muted Default row, delete-last→confirm→Default; migration | 22m | 60m | Commit `24cc1ce`. Biggest data-model change of the chapter. |
+| Incremental apply (only reprocess new/changed presets) + advertiser name + ID | 17m | 35m | Commit `14ccc47`. |
+| **Session subtotal** | **~55m** | **~130m** | Moderate-sparse across two days; one large refactor. |
+
+### 2026-08-03 — Session 11: Link/unlink, advertiser lock, confirmations
+
+**Commits:** `83a614f` (14:04), `bf97c74` (15:21), `666e177` (15:45), `6e0e618` (15:56).
+
+| Block | Prompting | AI Work | Notes |
+|---|---:|---:|---|
+| Unlink→Inactive + link/unlink toggle promoted to exposed row icon (MUI Link/LinkOff), orientation fix; Save + Push in edit mode | 14m | 30m | Commit `83a614f` + iteration on icon state. |
+| Sticky→locked advertiser (one per platform per line-item) + confirmations before restart / re-link / unlink (generic wording) | 16m | 35m | Commit `bf97c74`. Wording iterated per user steer. |
+| Fully-disabled locked advertiser (MUI LockOutlined icon + contact-support tooltip) | 9m | 18m | Commit `666e177`. |
+| Remove redundant Transcoding subheading | 6m | 12m | Commit `6e0e618`. |
+| **Session subtotal** | **~45m** | **~95m** | Dense (4 commits in ~2h); ~25% reduction off raw wall-clock. |
+
+### 2026-08-13 — Session 12: Continuity hand-off for the Claude-account switch
+
+**Commit:** doc-only (RESUME.md + log updates).
+
+| Block | Prompting | AI Work | Notes |
+|---|---:|---:|---|
+| Enhance both hand-off Artifacts with UI-mockup storyboards, then realign them to the real dark-app palette (bare StatusChip, five-column table, MUI outlined fields, disabled+lock advertiser) | 20m | 55m | Substantial inline HTML/CSS; republished to same URLs. |
+| `docs/RESUME.md` (pick-up guide: what transfers across a Claude-account switch, repo settings, run/reset commands, current state) | 12m | 20m | New durable entry point. |
+| Bring `SESSION_LOG.md` + `TIME_LOG.md` current (chapter 2, Sessions 7–12; extend commit table) | 8m | 15m | Logged in arrears. |
+| **Session subtotal** | **~40m** | **~90m** | Doc/continuity session — no feature code. |
+
 ---
 
 ## Running totals
@@ -203,7 +273,16 @@ Commit: `82c50a5`.
 | Session 4 (2026-04-29) — Name decouple + delete + creatives | 26m | 55m |
 | Session 5 (2026-04-30 → 05-05) — Manage Templates split + mutable catalog | 64m | 117m |
 | Session 6 (2026-05-06) — Documentation + uniqueness validation | 37m | 58m |
-| **Total** | **~3h 39m** | **~7h 25m** |
+| Session 7 (2026-05-12) — Mutable region catalog | 12m | 30m |
+| Session 8 (2026-07-15) — Pivot: Push + Transcode Status + presets + design sweep | 65m | 160m |
+| Session 9 (2026-07-27 → 07-28) — Platform Status column + hand-off docs | 30m | 75m |
+| Session 10 (2026-07-30 → 07-31) — Push model + multi-preset + incremental apply | 55m | 130m |
+| Session 11 (2026-08-03) — Link/unlink + advertiser lock + confirmations | 45m | 95m |
+| Session 12 (2026-08-13) — Continuity hand-off (docs/artifacts, account switch) | 40m | 90m |
+| **Total** | **~7h 46m** | **~17h 05m** |
+
+> Sessions 1–6 (original tag + template tool) = ~3h 39m Prompting / ~7h 25m AI Work.
+> Sessions 7–12 (Transcoding + 3rd-Party Push chapter) = ~4h 07m Prompting / ~9h 40m AI Work.
 
 ---
 

@@ -1,8 +1,9 @@
 # Distribution Tags — Transcoding · Prototype Hand-off
 
-> **Living document (draft).** Reflects the prototype as of **2026-07-30** and will be
+> **Living document (draft).** Reflects the prototype as of **2026-08-03** and will be
 > updated as the design evolves. See the Changelog at the bottom.
 > Companion doc: **3rd-Party Push** (`handoff-3rd-party-push.md`).
+> Picking this up fresh? Start at [`RESUME.md`](RESUME.md).
 
 ## Read this first
 
