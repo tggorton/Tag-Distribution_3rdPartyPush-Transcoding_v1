@@ -51,6 +51,8 @@ below.
 - **One advertiser per platform, locked** — the first push sets it; after that the field is
   **disabled** (not just read-only), greyed, with a **lock icon** + a *contact support*
   tooltip. Each platform keeps its own.
+- **Lock announced before it's set** — an inline notice on selecting an advertiser, plus a
+  confirmation on the first push, both in intentionally generic copy.
 - **Async load with a stale-response guard** so a slow reply can't overwrite a newer
   platform's list.
 
@@ -84,6 +86,15 @@ tag exists) opens a dialog to choose a destination and exactly which tags to sen
   advertiser churn — changing it is deliberately a support operation, not a self-serve control.
   *(In the prototype there's no in-app way to change a locked advertiser — clearing demo state
   resets it.)*
+- **The lock is made explicit before it happens.** Because that first push is what sets the
+  lock, the user is told twice: an **inline notice** appears under the advertiser field the
+  moment an advertiser is chosen (before it's locked), and the first push raises a
+  **confirmation** — *"Lock the advertiser for this platform?"* — spelling out that assigning
+  an advertiser locks it to every distribution on this platform for this line item, now and for
+  any added later, while other platforms keep their own and a new line item is set up
+  separately. Later pushes reuse the locked advertiser silently. **The copy is intentionally
+  generic** (no advertiser or platform name interpolated) so it never has to be generated
+  per-platform.
 - The advertiser list loads **asynchronously** with a spinner, and a stale-response guard
   keeps a slow reply from overwriting a newer platform's list.
 
@@ -250,6 +261,10 @@ Domain logic in `src/lib/` is pure (no React imports).
 
 ## Changelog
 
+- **2026-08-13** — **Advertiser lock is now announced before it's set.** Choosing an advertiser
+  shows an inline notice, and the first push raises a confirmation, both making clear that the
+  advertiser locks to every distribution on that platform for the line item. The copy is
+  intentionally generic (no advertiser/platform name interpolated).
 - **2026-08-13** — **Expanded for the build team.** Added a **Feature inventory** (every
   unique behavior at a glance) and an **Implementation map** (types, domain logic, state
   actions, components, and the backend swap points). No behavior change — documentation only.

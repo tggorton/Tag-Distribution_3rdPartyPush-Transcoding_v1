@@ -17,6 +17,7 @@ import {
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useEffect, useMemo, useState } from "react";
 import { DialogHeader } from "./DialogHeader";
+import { useConfirm } from "./ConfirmDialog";
 import { useApp } from "../state/AppContext";
 import { PLATFORM_STATUS_META } from "../lib/platformStatus";
 import {
@@ -53,6 +54,7 @@ export const PushTagsDialog = ({
   lockPlatform = false,
 }: Props) => {
   const { state } = useApp();
+  const { confirm, confirmDialog } = useConfirm();
   const distros = state.distros;
 
   const [platform, setPlatform] = useState<PushPlatform | null>(null);
@@ -161,8 +163,20 @@ export const PushTagsDialog = ({
     [selectedCount],
   );
 
-  const handlePush = () => {
+  const handlePush = async () => {
     if (!platform || !advertiser || selectedCount === 0) return;
+    // The FIRST push to a platform locks its advertiser for this line-item, so
+    // spell out the scope before it happens. Once locked (advertiserLocked), later
+    // pushes reuse it silently and skip this.
+    if (!advertiserLocked) {
+      const ok = await confirm({
+        title: "Lock the advertiser for this platform?",
+        message:
+          "Assigning an advertiser locks it to every distribution on this platform for this line item — the tags you're pushing now and any you add later. Other platforms keep their own advertiser, and a new line item is set up separately.",
+        confirmLabel: "Assign & Push",
+      });
+      if (!ok) return;
+    }
     onPush(selectedIds, platform, advertiser);
     onClose();
   };
@@ -186,11 +200,10 @@ export const PushTagsDialog = ({
       <DialogContent sx={{ px: 4, py: 3 }}>
         <Stack spacing={3}>
           <Typography variant="body2" color="text.secondary">
-            A tag can only be pushed to the platform it was built for — a Nexxen
-            tag to Nexxen, a TTD tag to The Trade Desk. Pick any platform and its
-            tags are selected automatically (the others are disabled); switch
-            platforms to push a different set. One push goes to a single platform +
-            advertiser.
+            A tag can only be pushed to the platform it was built for. Pick a
+            platform and its tags are selected automatically (the others are
+            disabled); switch platforms to push a different set. One push goes to a
+            single platform + advertiser.
           </Typography>
 
           <Autocomplete
@@ -240,9 +253,9 @@ export const PushTagsDialog = ({
                 InputLabelProps={{ shrink: true }}
                 helperText={
                   advertiserLocked
-                    ? `Locked — ${platform?.name} uses one advertiser per line-item`
+                    ? "Locked — this platform uses one advertiser per line-item"
                     : platform
-                      ? `Advertisers available on ${platform.name}`
+                      ? "Advertisers available on this platform"
                       : "Enabled once a platform is selected"
                 }
                 InputProps={{
@@ -275,6 +288,32 @@ export const PushTagsDialog = ({
               />
             )}
           />
+
+          {platform && advertiser && !advertiserLocked && (
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+                alignItems: "flex-start",
+                backgroundColor: "background.sunken",
+                border: 1,
+                borderColor: "divider",
+                borderRadius: 1,
+                px: 1.5,
+                py: 1.25,
+              }}
+            >
+              <LockOutlinedIcon
+                fontSize="small"
+                sx={{ color: "warning.main", mt: "1px", flexShrink: 0 }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                Pushing will <strong>lock the advertiser</strong> to every
+                distribution on this platform for this line item — including any
+                tags added later. Other platforms keep their own advertiser.
+              </Typography>
+            </Box>
+          )}
 
           <Box>
             <Stack
@@ -378,6 +417,7 @@ export const PushTagsDialog = ({
           {pushLabel}
         </Button>
       </DialogActions>
+      {confirmDialog}
     </Dialog>
   );
 };
