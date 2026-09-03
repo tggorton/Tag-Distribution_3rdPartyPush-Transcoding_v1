@@ -381,7 +381,7 @@
     <p class="sec-intro">Pick a platform → its tags auto-select. The advertiser is locked once set — the field is disabled, with a lock icon and a "contact support" tooltip. Uncheck any tags to hold back, then push.</p>
     <div class="callout note">
       <span class="eyebrow">The lock is announced before it's set</span>
-      <p>Because the <strong>first push</strong> is what sets the lock, the user is told twice: an inline notice appears under the advertiser field the moment an advertiser is chosen, and the first push raises a confirmation — <em>"Lock the advertiser for this platform?"</em> — spelling out that the advertiser locks to every distribution on this platform for the line item, now and for any added later. Other platforms keep their own; a new line item is set up separately. The copy is intentionally <strong>generic</strong> so it never has to be generated per-platform.</p>
+      <p>Because the <strong>first push</strong> is what sets the lock, the user is told twice: an inline notice appears under the advertiser field the moment an advertiser is chosen, and the first push raises a confirmation — <em>"Lock this advertiser to the platform?"</em> — spelling out that the advertiser locks to that 3rd-party system <strong>globally within Radius</strong> (every line item, current and future — not just this one) and can't be changed without support. Each platform keeps its own advertiser. The copy is intentionally <strong>generic</strong> so it never has to be generated per-platform.</p>
     </div>
     <div class="mock" style="max-width:480px;">
       <div class="mock-cap"><span class="lts"><i></i><i></i><i></i></span> Modal · Push Tags to Platform</div>
@@ -396,7 +396,7 @@
           <div class="finput" style="margin-bottom:5px;"><span class="fl">Platform</span><span>Nexxen</span><span class="car">▾</span></div>
           <p class="fhelp" style="margin-bottom:18px;">Selecting a platform selects its tags</p>
           <div class="finput ro" style="margin-bottom:5px;"><span class="fl">Advertiser</span><span>Advertiser 3 · 012345</span><span class="ico" title="This advertiser is locked. Contact support to change the advertiser for this platform." style="width:16px;height:16px;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg></span></div>
-          <p class="fhelp" style="margin-bottom:20px;">Locked — Nexxen uses one advertiser per line-item. Contact support to change it.</p>
+          <p class="fhelp" style="margin-bottom:20px;">Locked — this platform uses one advertiser across all of Radius. Contact support to change it.</p>
           <div class="mbar" style="margin-bottom:8px;">
             <span class="lockrow"><span class="chk"></span><span style="font-size:14px; color:#fff;">Select all</span></span>
             <span class="grow"></span>

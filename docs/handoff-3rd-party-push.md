@@ -48,11 +48,13 @@ below.
 - **Platform-scoped advertisers** — each platform returns its own advertiser set; the
   advertiser dropdown is dependent on the platform (platform must be chosen first).
 - **Name + ID display** — `Advertiser 1 · 012345` (ID format is a placeholder).
-- **One advertiser per platform, locked** — the first push sets it; after that the field is
-  **disabled** (not just read-only), greyed, with a **lock icon** + a *contact support*
-  tooltip. Each platform keeps its own.
+- **One advertiser per platform, locked globally** — the first push binds an advertiser to
+  that 3rd-party platform **across all of Radius** (every line item, current and future — not
+  just this one); after that the field is **disabled** (not just read-only), greyed, with a
+  **lock icon** + a *contact support* tooltip. Each platform keeps its own advertiser.
 - **Lock announced before it's set** — an inline notice on selecting an advertiser, plus a
-  confirmation on the first push, both in intentionally generic copy.
+  confirmation on the first push, both spelling out the account-wide scope in intentionally
+  generic copy.
 - **Async load with a stale-response guard** so a slow reply can't overwrite a newer
   platform's list.
 
@@ -77,24 +79,24 @@ tag exists) opens a dialog to choose a destination and exactly which tags to sen
   platform must be chosen before the advertiser field enables.
 - Each advertiser shows as **name + advertiser ID** — e.g. `Advertiser 1 · 012345`. *(The ID
   format is a placeholder; the real format is TBD.)*
-- **One advertiser per platform, locked:** the **first** push to a platform sets its
-  advertiser; every push after that **reuses it and the advertiser field is disabled** — not
-  merely read-only. The field greys out, a **lock icon** sits at its right edge, and hovering
-  it shows *"This advertiser is locked. Contact support to change the advertiser for this
-  platform."* Each platform keeps its own (Nexxen and TTD independently). Rationale: linking a
-  platform + advertiser is non-trivial on the backend, so a line-item shouldn't let the
-  advertiser churn — changing it is deliberately a support operation, not a self-serve control.
-  *(In the prototype there's no in-app way to change a locked advertiser — clearing demo state
-  resets it.)*
+- **One advertiser per platform, locked globally within Radius.** The **first** push to a
+  platform sets its advertiser; every push after that **reuses it and the advertiser field is
+  disabled** — not merely read-only. The field greys out, a **lock icon** sits at its right
+  edge, and hovering it shows *"This advertiser is locked. Contact support to change the
+  advertiser for this platform."* The binding is **account-wide across Radius** — the advertiser
+  is locked to that 3rd-party system for every line item, current and future, not just this one.
+  Each platform keeps its own advertiser (Nexxen and TTD independently). Rationale: linking a
+  platform + advertiser is a **significant** backend association, so it's set once and changed
+  only through support — never a casual self-serve toggle. *(In the prototype there's no in-app
+  way to change a locked advertiser — clearing demo state resets it.)*
 - **The lock is made explicit before it happens.** Because that first push is what sets the
   lock, the user is told twice: an **inline notice** appears under the advertiser field the
   moment an advertiser is chosen (before it's locked), and the first push raises a
-  **confirmation** — *"Lock the advertiser for this platform?"* — spelling out that assigning
-  an advertiser locks it to every distribution on this platform for this line item, now and for
-  any added later, while other platforms keep their own and a new line item is set up
-  separately. Later pushes reuse the locked advertiser silently. **The copy is intentionally
-  generic** (no advertiser or platform name interpolated) so it never has to be generated
-  per-platform.
+  **confirmation** — *"Lock this advertiser to the platform?"* — spelling out that assigning an
+  advertiser locks it to that 3rd-party system **globally within the Radius Platform**, for
+  every line item and not just this one, and that it can't be changed without support. Later
+  pushes reuse the locked advertiser silently. **The copy is intentionally generic** (no
+  advertiser or platform name interpolated) so it never has to be generated per-platform.
 - The advertiser list loads **asynchronously** with a spinner, and a stale-response guard
   keeps a slow reply from overwriting a newer platform's list.
 
@@ -261,10 +263,13 @@ Domain logic in `src/lib/` is pure (no React imports).
 
 ## Changelog
 
+- **2026-08-14** — **Corrected the lock scope: it's account-wide, not per-line-item.** The
+  advertiser↔platform binding is locked **globally within Radius** — every line item, current
+  and future — not just the current one. Reworded the inline notice, the confirmation, and the
+  field helper accordingly (still generic copy); updated this doc's framing throughout.
 - **2026-08-13** — **Advertiser lock is now announced before it's set.** Choosing an advertiser
-  shows an inline notice, and the first push raises a confirmation, both making clear that the
-  advertiser locks to every distribution on that platform for the line item. The copy is
-  intentionally generic (no advertiser/platform name interpolated).
+  shows an inline notice, and the first push raises a confirmation. The copy is intentionally
+  generic (no advertiser/platform name interpolated). *(Scope corrected 2026-08-14, above.)*
 - **2026-08-13** — **Expanded for the build team.** Added a **Feature inventory** (every
   unique behavior at a glance) and an **Implementation map** (types, domain logic, state
   actions, components, and the backend swap points). No behavior change — documentation only.

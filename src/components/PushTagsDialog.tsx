@@ -170,9 +170,9 @@ export const PushTagsDialog = ({
     // pushes reuse it silently and skip this.
     if (!advertiserLocked) {
       const ok = await confirm({
-        title: "Lock the advertiser for this platform?",
+        title: "Lock this advertiser to the platform?",
         message:
-          "Assigning an advertiser locks it to every distribution on this platform for this line item — the tags you're pushing now and any you add later. Other platforms keep their own advertiser, and a new line item is set up separately.",
+          "Assigning an advertiser locks it to this 3rd party system globally within the Radius Platform. The association is significant and can't be changed without support. Make sure this is the right advertiser before continuing.",
         confirmLabel: "Assign & Push",
       });
       if (!ok) return;
@@ -253,7 +253,7 @@ export const PushTagsDialog = ({
                 InputLabelProps={{ shrink: true }}
                 helperText={
                   advertiserLocked
-                    ? "Locked — this platform uses one advertiser per line-item"
+                    ? "Locked — this platform uses one advertiser across all of Radius"
                     : platform
                       ? "Advertisers available on this platform"
                       : "Enabled once a platform is selected"
@@ -308,9 +308,10 @@ export const PushTagsDialog = ({
                 sx={{ color: "warning.main", mt: "1px", flexShrink: 0 }}
               />
               <Typography variant="caption" color="text.secondary">
-                Pushing will <strong>lock the advertiser</strong> to every
-                distribution on this platform for this line item — including any
-                tags added later. Other platforms keep their own advertiser.
+                Pushing locks this advertiser to the 3rd-party platform{" "}
+                <strong>across all of Radius</strong> — every line item, not just
+                this one, now and going forward. It's a significant association and
+                can't be changed here.
               </Typography>
             </Box>
           )}
