@@ -561,6 +561,36 @@ existing demo rows in every table.
 our additions slotted in where they belong — which is what makes the hand-off legible. Docs,
 the bitrate reference, `RESUME.md`, and the Transcoding Artifact were all updated to match.
 
+**Hand-off delivered (2026-10-23).** The prototype, the Transcoding hand-off Artifact, and a
+link to the repo were handed to the team via **Jira**, with a supporting message/detail there.
+This is the delivery milestone for the Transcoding + 3rd-Party Push chapter. Work is paused for
+the day; **future adjustments may follow** but nothing is open or mid-edit. Last pushed commit:
+`baeefb4`. (This status note is logged locally; it wasn't committed — no push authorized for it.)
+
+---
+
+### 2026-10-23 — Session 17: Two apply-sheet guards (no duplicate presets; "Original" duration caution)
+
+**Committed + pushed** (same-day follow-up after the hand-off; the user asked for two quick
+guards, then to update docs/artifact and commit). Also folded in the two uncommitted hand-off
+status notes from earlier today (SESSION_LOG + RESUME).
+
+- **A preset can't be applied to a distro more than once.** In the Transcoding Settings apply
+  sheet, a preset already applied in another row is **greyed out** in every other row's picker
+  (`getOptionDisabled`); **+ Add Preset** defaults a new row to the first *unused* preset and is
+  **disabled** once every preset is in use. Rationale from the user: there's no benefit to applying
+  the same preset twice, so just catch it.
+- **"Original" duration caution.** Selecting (or viewing) Duration = **Original** now shows an
+  inline **amber warning** that a non-standard runtime may be flagged during publisher testing.
+  Implemented data-driven: a `warnWhen { value, message }` on the field def, rendered by the shared
+  `TranscodeFieldsGrid` — so it appears in both the admin preset editor and the read-only user view.
+- **Scope:** UI-only, no model/behavior change to transcoding itself; typecheck green. Docs
+  (`handoff-transcoding.md` + vault), the Transcoding Artifact (**V5**), and `RESUME.md` updated to
+  match.
+
+**Why it matters:** both are small guard-rails that stop a user from producing a pointless or
+risky config — the kind of polish that makes the hand-off feel finished rather than a rough demo.
+
 ---
 
 ## Future considerations

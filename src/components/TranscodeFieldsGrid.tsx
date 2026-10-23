@@ -10,6 +10,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useState } from "react";
 import type { TranscodeSettings } from "../types";
 import {
@@ -373,15 +374,36 @@ export const TranscodeFieldsGrid = ({
             alignItems: "start",
           }}
         >
-          {TRANSCODE_FIELDS.filter((f) => f.group === group).map((f) => (
-            <FieldInput
-              key={f.id}
-              field={f}
-              value={settings[f.id]}
-              onChange={(value) => onChange(f.id, value)}
-              readOnly={readOnly}
-            />
-          ))}
+          {TRANSCODE_FIELDS.filter((f) => f.group === group).map((f) => {
+            const warning =
+              f.warnWhen && settings[f.id] === f.warnWhen.value
+                ? f.warnWhen.message
+                : null;
+            return (
+              <Box key={f.id}>
+                <FieldInput
+                  field={f}
+                  value={settings[f.id]}
+                  onChange={(value) => onChange(f.id, value)}
+                  readOnly={readOnly}
+                />
+                {warning && (
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    sx={{ mt: 0.5, alignItems: "flex-start" }}
+                  >
+                    <WarningAmberIcon
+                      sx={{ fontSize: 15, color: "warning.main", mt: "1px" }}
+                    />
+                    <Typography variant="caption" sx={{ color: "warning.main" }}>
+                      {warning}
+                    </Typography>
+                  </Stack>
+                )}
+              </Box>
+            );
+          })}
         </Box>
       </Box>
     ))}

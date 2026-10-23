@@ -38,6 +38,10 @@ export interface TranscodeField {
    *  custom-value detection; this only changes how the dropdown is rendered. */
   optionGroups?: { label: string; options: string[] }[];
   helperText?: string;
+  /** Inline caution shown (in both the editable and read-only grid) when the
+   *  field currently holds this exact value — e.g. duration "Original", which a
+   *  publisher's delivery QA may flag. */
+  warnWhen?: { value: string; message: string };
 }
 
 export const TRANSCODE_FIELDS: TranscodeField[] = [
@@ -95,6 +99,11 @@ export const TRANSCODE_FIELDS: TranscodeField[] = [
     // user set an exact non-standard duration.
     options: ["15s", "30s", "45s", "60s", "Original"],
     helperText: "Exact duration, e.g. :45 or 22.5s",
+    warnWhen: {
+      value: "Original",
+      message:
+        "“Original” keeps the source runtime — a non-standard length may be flagged during publisher testing.",
+    },
   },
   {
     id: "bitrate",

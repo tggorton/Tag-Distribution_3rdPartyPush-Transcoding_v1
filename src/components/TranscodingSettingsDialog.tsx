@@ -111,8 +111,19 @@ export const TranscodingSettingsDialog = ({
     );
   };
 
+  // Every preset already applied → nothing left to add (a preset can't be applied
+  // to a distro more than once).
+  const allPresetsUsed =
+    presets.length > 0 && presets.every((p) => rows.some((r) => r.presetId === p.id));
+
   const addRow = () => {
-    const preset = findPreset(presets, DEFAULT_PRESET_ID) ?? presets[0];
+    // Default the new row to the first preset that isn't already applied, so it
+    // never lands on a duplicate (falls back to Default only if none is free).
+    const used = new Set(rows.map((r) => r.presetId));
+    const preset =
+      presets.find((p) => !used.has(p.id)) ??
+      findPreset(presets, DEFAULT_PRESET_ID) ??
+      presets[0];
     const key = newId();
     // Prepend so the new preset lands at the top, collapsed, then scroll to it
     // (any expanded rows below stay expanded).
@@ -203,14 +214,25 @@ export const TranscodingSettingsDialog = ({
                 </IconButton>
               </Tooltip>
             )}
-            <Button
-              variant="outlined"
-              color="primary"
-              size="small"
-              onClick={addRow}
+            <Tooltip
+              title={
+                allPresetsUsed
+                  ? "Every preset is already applied — a preset can't be added more than once"
+                  : ""
+              }
             >
-              + Add Preset
-            </Button>
+              <span>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  size="small"
+                  onClick={addRow}
+                  disabled={allPresetsUsed}
+                >
+                  + Add Preset
+                </Button>
+              </span>
+            </Tooltip>
           </Stack>
 
           <Stack spacing={2} divider={<Divider />}>
@@ -226,6 +248,11 @@ export const TranscodingSettingsDialog = ({
               // The only preset can be deleted (resets to Default) — unless it's
               // already Default, since Default is the floor and must remain.
               const canDelete = !(isOnly && isDefault);
+              // A preset applied in another row is greyed out here — the same
+              // preset can't be applied to a distro more than once.
+              const usedByOtherRows = new Set(
+                rows.filter((r) => r.key !== row.key).map((r) => r.presetId),
+              );
               return (
                 <Box
                   key={row.key}
@@ -237,6 +264,7 @@ export const TranscodingSettingsDialog = ({
                       onChange={(_, next) => next && changeRowPreset(row.key, next.id)}
                       options={presets}
                       getOptionLabel={(opt) => opt.name}
+                      getOptionDisabled={(opt) => usedByOtherRows.has(opt.id)}
                       isOptionEqualToValue={(opt, val) => opt.id === val.id}
                       sx={{
                         minWidth: 260,

@@ -319,6 +319,19 @@ Commit: `82c50a5`.
 
 ---
 
+### 2026-10-23 — Session 17: Two apply-sheet guards (no duplicate presets; "Original" duration caution)
+
+**Status:** committed + pushed (same-day follow-up).
+
+| Block | Prompting | AI Work | Notes |
+|---|---:|---:|---|
+| No duplicate presets (grey out applied presets, default + Add to first unused, disable when all used) | 8m | 20m | `getOptionDisabled` + addRow/allPresetsUsed guards. |
+| "Original" duration caution (data-driven `warnWhen`, rendered in the shared grid) | 6m | 15m | Shows in both admin editor + read-only view. |
+| Docs + vault + artifact (V5) + logs + commit/push | 8m | 35m | Two small UI diffs; doc/log/commit wrap-up. |
+| **Session subtotal** | **~22m** | **~70m** | Moderate; small focused changes. |
+
+---
+
 ## Running totals
 
 | | Prompting | AI Work |
@@ -339,10 +352,11 @@ Commit: `82c50a5`.
 | Session 14 (2026-10-14) — Standards-backed selectors + bitrate reference + vault + Open Sans | 70m | 170m |
 | Session 15 (2026-10-22) — Bitrate → single rates; presets read-only; Out of Spec removed | 50m | 185m |
 | Session 16 (2026-10-23) — Line-item page aligned to platform + discoverable custom bitrate | 65m | 200m |
-| **Total** | **~11h 21m** | **~27h 05m** |
+| Session 17 (2026-10-23) — Two apply-sheet guards (no duplicate presets; "Original" caution) | 22m | 70m |
+| **Total** | **~11h 43m** | **~28h 15m** |
 
 > Sessions 1–6 (original tag + template tool) = ~3h 39m Prompting / ~7h 25m AI Work.
-> Sessions 7–16 (Transcoding + 3rd-Party Push chapter) = ~7h 42m Prompting / ~19h 40m AI Work.
+> Sessions 7–17 (Transcoding + 3rd-Party Push chapter) = ~8h 04m Prompting / ~20h 50m AI Work.
 
 ---
 

@@ -120,9 +120,15 @@ palette (paper `#383838`, pink `#EF0078`, the status hues, etc.).
 
 ## Where things stand (2026-10-23)
 
-Typecheck green. Sessions 15 + 16 committed and pushed to `origin` together (one commit).
+Typecheck green. All work through Session 17 committed and pushed to `origin`. **Delivered to
+the team on 2026-10-23** — prototype, the Transcoding hand-off Artifact, and the repo link handed
+off via **Jira** with supporting detail. Chapter complete; small follow-up adjustments have
+landed since (Session 17), but nothing is open or mid-edit.
 Most recent work (newest first):
 
+- **Two apply-sheet guards (Session 17).** A preset can't be applied to a distro more than once
+  (applied presets greyed out in other rows; **+ Add Preset** disables when all are used). Selecting
+  **Original** duration shows an inline amber caution that it may be flagged in publisher testing.
 - **Line-item page aligned to the real platform.** Header gained Prev/Next, "X of Y",
   Set Default Creative; line-item details became the platform's vertical field list +
   thumbnail; Creatives split into **Weighted Creatives** + **Direct Creatives**; Pixels

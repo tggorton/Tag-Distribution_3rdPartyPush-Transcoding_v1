@@ -247,6 +247,7 @@
           <li><strong>Standards-backed inputs</strong> — Duration is a dropdown of spec durations; <strong>Video Bitrate is a multi-select of single rates</strong> (no ranges).</li>
           <li><strong>Read-only for users</strong> — regular users pick presets only; the field sheet can't be overridden.</li>
           <li><strong>Collapsible rows</strong> + <strong>+ Add Preset</strong> (inserts at top, scrolls to it).</li>
+          <li><strong>No duplicate presets</strong> — an applied preset is greyed out in other rows; + Add Preset disables once all are used.</li>
           <li><strong>Incremental apply</strong> — only new/changed presets reprocess.</li>
         </ul>
       </div>
@@ -353,7 +354,7 @@
         <h4>Duration</h4>
         <ul>
           <li><strong>15s · 30s · 45s · 60s · Original</strong>, plus Custom.</li>
-          <li><strong>Original</strong> keeps the source runtime intact — a 30.89s clip stays 30.89s.</li>
+          <li><strong>Original</strong> keeps the source runtime intact — a 30.89s clip stays 30.89s. Choosing it shows an <strong>amber caution</strong>: a non-standard length may be flagged in publisher testing.</li>
           <li>A fixed value (e.g. 30s) trims to exactly that length.</li>
         </ul>
       </div>

@@ -55,7 +55,14 @@ Everything the Transcoding track adds, at a glance — each is detailed in the s
   Regular users never see custom.
 - **Collapsible preset rows** — collapsed by default; expand a row to **view** its fields
   (read-only); hairline dividers (no boxed cards).
-- **+ Add Preset** — inserts a new row at the top and scrolls to it.
+- **+ Add Preset** — inserts a new row at the top and scrolls to it, defaulting to the first
+  preset that isn't already applied.
+- **No duplicate presets.** The same preset can't be applied to a distro more than once — a preset
+  already applied is **greyed out** in every other row's picker, and **+ Add Preset** is disabled
+  once every preset is in use.
+- **"Original" duration caution.** When a preset's Duration is **Original**, an inline amber
+  warning notes that a non-standard length may be flagged during publisher testing (shown in both
+  the admin editor and the read-only view).
 - **Incremental apply** — only new or changed presets reprocess; unchanged presets keep each
   distro's current status.
 - **Delete a preset row** — dropping one of several is immediate; deleting the **last** confirms →
@@ -266,6 +273,12 @@ off `useApp()`, pure logic in `src/lib/` (no React imports).
 
 ## Changelog
 
+- **2026-10-23** — **Two apply-sheet guards.** (1) **No duplicate presets** — a preset already
+  applied to a distro is greyed out in the other rows' pickers, and **+ Add Preset** is disabled
+  once all presets are in use (and defaults a new row to the first unused preset). (2) **"Original"
+  duration caution** — selecting/showing Duration = Original surfaces an inline amber warning that
+  a non-standard length may be flagged during publisher testing (data-driven `warnWhen` on the
+  field; shown in both the admin editor and the read-only view).
 - **2026-10-23** — **Discoverable custom bitrate; line-item page aligned to the platform.** The
   Video Bitrate field now surfaces an explicit **"Add custom rate…"** option as soon as a valid
   single number is typed (a range is rejected), so entering a specific rate is discoverable rather
