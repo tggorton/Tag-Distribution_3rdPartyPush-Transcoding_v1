@@ -3,6 +3,7 @@
 > **Living document (draft).** Reflects the prototype as of **2026-08-03** and will be
 > updated as the design evolves. See the Changelog at the bottom.
 > Companion doc: **Transcoding** (`handoff-transcoding.md`).
+> Jira: [WEB-1404](https://grabitmedia.atlassian.net/browse/WEB-1404).
 > Picking this up fresh? Start at [`RESUME.md`](RESUME.md).
 
 ## Read this first

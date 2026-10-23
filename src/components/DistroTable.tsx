@@ -1,4 +1,5 @@
 import {
+  Box,
   Divider,
   IconButton,
   ListItemText,
@@ -114,7 +115,8 @@ export const DistroTable = ({
 
   return (
     <>
-      <Table size="small">
+      <Box sx={{ overflowX: "auto", maxWidth: "100%" }}>
+      <Table size="small" sx={{ minWidth: 760 }}>
         <TableHead>
           <TableRow>
             <TableCell>Name</TableCell>
@@ -249,6 +251,7 @@ export const DistroTable = ({
           })}
         </TableBody>
       </Table>
+      </Box>
       <Menu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}

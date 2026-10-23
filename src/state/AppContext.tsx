@@ -159,10 +159,18 @@ const reducer = (state: AppState, action: Action): AppState => {
         transcodePresets: [...state.transcodePresets, action.preset],
       };
     case "updateTranscodePreset":
+      // Updating a preset is the single way to change transcode settings, and it
+      // propagates: every line-item config using this preset re-syncs to the new
+      // settings (the distro re-transcode is driven in the component layer).
       return {
         ...state,
         transcodePresets: state.transcodePresets.map((p) =>
           p.id === action.preset.id ? action.preset : p,
+        ),
+        transcoding: state.transcoding.map((c) =>
+          c.presetId === action.preset.id
+            ? { ...c, settings: { ...action.preset.settings } }
+            : c,
         ),
       };
     case "deleteTranscodePreset":

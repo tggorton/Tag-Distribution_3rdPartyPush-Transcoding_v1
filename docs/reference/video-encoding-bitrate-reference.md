@@ -5,6 +5,12 @@ Public specifications checked October 14, 2026. Focus: primarily US online video
 > **Why this is in the repo:** it's the source-of-truth behind the Transcoding feature's
 > **Video Bitrate** option list and the per-publisher preset bitrates
 > (`src/lib/transcodePresets.ts`). Update the presets/options here when a spec changes.
+>
+> **Note (2026-10-22):** the platform transcodes to **single, fixed rates** — not ranges (no
+> averaging of a band). The UI therefore offers
+> a ladder of **single rates** (1–50 Mbps) chosen so at least one rate falls inside every range
+> below; the ranges here are the *reference* each single rate is validated against, not what the
+> UI stores.
 
 ## How to interpret these specifications
 

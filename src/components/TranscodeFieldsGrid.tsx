@@ -1,6 +1,9 @@
 import {
+  Autocomplete,
   Box,
+  Checkbox,
   Chip,
+  createFilterOptions,
   ListSubheader,
   MenuItem,
   Stack,
@@ -10,6 +13,7 @@ import {
 import { useState } from "react";
 import type { TranscodeSettings } from "../types";
 import {
+  canonicalizeRates,
   TRANSCODE_FIELDS,
   type TranscodeField,
   type TranscodeFieldGroup,
@@ -166,7 +170,23 @@ const SelectWithCustom = ({
   );
 };
 
-const FieldInput = ({
+/** Comma-joined list ⇄ array helper for multiselect fields. */
+const parseRates = (v: string): string[] =>
+  v ? v.split(",").map((s) => s.trim()).filter(Boolean) : [];
+
+const rateFilter = createFilterOptions<string>();
+/** Sentinel prefix marking the dropdown's "Add custom rate…" entry. */
+const ADD_PREFIX = "__add__:";
+
+/**
+ * A multi-select of standard single values (Video Bitrate): the operator picks
+ * one or more, shown as chips, and the backend produces one rendition per
+ * selected value. A typed value that normalizes to a valid single rate surfaces
+ * an explicit "Add custom rate…" option (the discoverable way to enter a specific
+ * number) — ranges are rejected, so only single rates stick. Stored as a
+ * comma-joined list in canonical option order.
+ */
+const MultiSelectField = ({
   field,
   value,
   onChange,
@@ -175,6 +195,124 @@ const FieldInput = ({
   value: string;
   onChange: (value: string) => void;
 }) => {
+  const options = field.options ?? [];
+  const selected = parseRates(value);
+  // Strip the "Add custom rate…" sentinel to its raw value, then keep single
+  // rates only (standard or custom), drop ranges, order ascending.
+  const commit = (next: string[]) => {
+    const raw = next.map((v) =>
+      v.startsWith(ADD_PREFIX) ? v.slice(ADD_PREFIX.length) : v,
+    );
+    onChange(canonicalizeRates(raw.join(",")).join(", "));
+  };
+  return (
+    <Autocomplete
+      multiple
+      freeSolo
+      disableCloseOnSelect
+      clearOnBlur
+      handleHomeEndKeys
+      options={options}
+      value={selected}
+      onChange={(_, next) => commit(next as string[])}
+      size="small"
+      fullWidth
+      filterOptions={(opts, params) => {
+        const filtered = rateFilter(opts, params);
+        // Offer an explicit custom entry only when the typed text normalizes to a
+        // single rate that isn't already a standard option or selected. A range
+        // normalizes to nothing, so it never appears — "specific number, not a range".
+        const normalized = canonicalizeRates(params.inputValue);
+        if (
+          normalized.length === 1 &&
+          !options.includes(normalized[0]) &&
+          !selected.includes(normalized[0])
+        ) {
+          filtered.push(`${ADD_PREFIX}${normalized[0]}`);
+        }
+        return filtered;
+      }}
+      getOptionLabel={(opt) =>
+        opt.startsWith(ADD_PREFIX) ? opt.slice(ADD_PREFIX.length) : opt
+      }
+      renderOption={(props, option, { selected: isSel }) => {
+        const { key, ...liProps } = props as typeof props & { key?: string };
+        if (option.startsWith(ADD_PREFIX)) {
+          return (
+            <li {...liProps} key={option}>
+              <Typography variant="body2" sx={{ color: "primary.main", fontWeight: 600 }}>
+                Add custom rate “{option.slice(ADD_PREFIX.length)}”
+              </Typography>
+            </li>
+          );
+        }
+        return (
+          <li {...liProps} key={option}>
+            <Checkbox size="small" checked={isSel} sx={{ mr: 1, p: 0.5 }} />
+            {option}
+          </li>
+        );
+      }}
+      renderTags={(vals, getTagProps) =>
+        vals.map((opt, i) => {
+          const { key, ...tagProps } = getTagProps({ index: i });
+          const custom = !options.includes(opt);
+          return (
+            <Chip
+              key={key}
+              size="small"
+              label={custom ? `${opt} · Custom` : opt}
+              variant={custom ? "outlined" : "filled"}
+              sx={
+                custom
+                  ? { borderColor: "primary.main", color: "primary.main" }
+                  : undefined
+              }
+              {...tagProps}
+            />
+          );
+        })
+      }
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label={field.label}
+          placeholder={selected.length ? "" : "Select rate(s) or type a custom number"}
+          InputLabelProps={{ shrink: true }}
+          helperText={field.helperText}
+        />
+      )}
+    />
+  );
+};
+
+const FieldInput = ({
+  field,
+  value,
+  onChange,
+  readOnly,
+}: {
+  field: TranscodeField;
+  value: string;
+  onChange: (value: string) => void;
+  readOnly?: boolean;
+}) => {
+  if (readOnly) {
+    // A plain, non-editable display of the preset's value for this field.
+    return (
+      <TextField
+        label={field.label}
+        value={value || "—"}
+        size="small"
+        fullWidth
+        InputProps={{ readOnly: true }}
+        InputLabelProps={{ shrink: true }}
+      />
+    );
+  }
+  if (field.type === "multiselect") {
+    return <MultiSelectField field={field} value={value} onChange={onChange} />;
+  }
   if (field.type === "select-custom") {
     return <SelectWithCustom field={field} value={value} onChange={onChange} />;
   }
@@ -202,13 +340,21 @@ const FieldInput = ({
 interface Props {
   settings: TranscodeSettings;
   onChange: (id: string, value: string) => void;
+  /** Read-only view (the user's Transcoding Settings dialog): fields show the
+   *  preset's values but can't be edited. Editing happens only in the admin preset
+   *  manager, where the grid is interactive (and custom entry is available). */
+  readOnly?: boolean;
 }
 
 /**
  * The Video / Audio transcode field grid, shared by the user's Transcoding
  * Settings dialog and the admin preset manager so both render an identical sheet.
  */
-export const TranscodeFieldsGrid = ({ settings, onChange }: Props) => (
+export const TranscodeFieldsGrid = ({
+  settings,
+  onChange,
+  readOnly = false,
+}: Props) => (
   <Stack spacing={3}>
     {GROUPS.map((group) => (
       <Box key={group}>
@@ -233,6 +379,7 @@ export const TranscodeFieldsGrid = ({ settings, onChange }: Props) => (
               field={f}
               value={settings[f.id]}
               onChange={(value) => onChange(f.id, value)}
+              readOnly={readOnly}
             />
           ))}
         </Box>

@@ -118,28 +118,42 @@ palette (paper `#383838`, pink `#EF0078`, the status hues, etc.).
 
 ---
 
-## Where things stand (2026-08-13)
+## Where things stand (2026-10-23)
 
-Working tree clean, typecheck green, everything through `6e0e618` pushed to `origin`.
+Typecheck green. Sessions 15 + 16 committed and pushed to `origin` together (one commit).
 Most recent work (newest first):
 
-- Removed the redundant `Transcoding: …` subheading under the Distributions title
-  (the Transcode Status column already shows a chip per preset).
-- Advertiser lock hardened: once set for a platform the field is **disabled** (not
-  just read-only), with a MUI `LockOutlined` icon + a "contact support" tooltip.
-- Locked, sticky advertiser (one advertiser per platform per line-item); unlink /
-  re-link both confirm first.
-- Link/unlink as an exposed row icon; `Inactive` platform status; `Save + Push` in
-  edit mode.
-- Multi-preset transcoding with incremental apply; advertiser name + ID.
+- **Line-item page aligned to the real platform.** Header gained Prev/Next, "X of Y",
+  Set Default Creative; line-item details became the platform's vertical field list +
+  thumbnail; Creatives split into **Weighted Creatives** + **Direct Creatives**; Pixels
+  columns reordered; our Distributions buttons keep their original names. **All section
+  tables are horizontal-scroll contained** so nothing overflows the page; buttons no
+  longer wrap; more padding between sections.
+- **Discoverable custom bitrate (admin).** Typing a valid single number in Video Bitrate
+  surfaces an explicit **"Add custom rate…"** entry (ranges rejected). Dropped the
+  confusing "one rendition per rate" helper wording.
+- **Transcoding bitrate → single, fixed rates.** Video Bitrate is a **multi-select of
+  single rates** (ladder 1–50 Mbps); no ranges, no averaging. `canonicalizeRates`
+  validates/sorts the list.
+- **Presets are read-only for users; edits are admin-only.** Regular users select
+  presets but can't override fields (`TranscodeFieldsGrid` `readOnly`). Custom rates +
+  field edits happen only in the admin preset manager, and an admin **Update
+  re-transcodes every distro** using that preset (`updateTranscodePreset` propagation).
+- **"Out of Spec" removed** — `DistroStatus` is now five states (`default | live |
+  processing | error | inactive`); `transcodeLandingStatus` is `default` vs `live`.
+- Standards-backed Duration + Bitrate selectors and the in-repo bitrate reference
+  (`docs/reference/video-encoding-bitrate-reference.md`) — `b8c9d38`.
+- Advertiser lock is **account-wide across Radius** (not per line-item), announced
+  before it's set, with generalized copy — `3b6aad6`, `1d3cc2e`.
+- Hand-off Artifacts rebuilt under the Team account and kept current (Transcoding
+  republished to its URL, Version 3, this session).
 
 ## Likely next steps / open threads
 
-- **Rebuild the hand-off Artifacts** under the new account (see above).
 - Open product/design questions are listed at the bottom of each hand-off doc
   ("Open questions for the team") — e.g. whether transcode state should gate a push,
-  re-push semantics, SSP "advertiser" vs. other association, per-publisher option
-  constraints.
+  re-push semantics, SSP "advertiser" vs. other association, and the **scope of an admin
+  preset update's re-transcode** (account-wide vs. line-item, immediate vs. queued).
 - Older, still-standing items are in
   [`../SESSION_LOG.md`](../SESSION_LOG.md) → *Future considerations* / *Open threads*.
 - Everything backend-facing is simulated (localStorage, timers, mock advertiser

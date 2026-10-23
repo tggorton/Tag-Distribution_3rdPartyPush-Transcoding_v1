@@ -36,7 +36,7 @@ export const PixelsStub = () => (
     <SectionHeader
       title="Pixels"
       actions={
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap", gap: 1 }}>
           <Button variant="outlined" color="primary" size="small">
             Import Pixels
           </Button>
@@ -52,12 +52,13 @@ export const PixelsStub = () => (
         </Stack>
       }
     />
-    <Table size="small">
+    <Box sx={{ overflowX: "auto", maxWidth: "100%" }}>
+    <Table size="small" sx={{ minWidth: 760 }}>
       <TableHead>
         <TableRow>
           <TableCell>Name</TableCell>
-          <TableCell>Pixel URL</TableCell>
           <TableCell>Event Types</TableCell>
+          <TableCell>Pixel URL</TableCell>
           <TableCell align="right">Actions</TableCell>
         </TableRow>
       </TableHead>
@@ -66,6 +67,9 @@ export const PixelsStub = () => (
           <TableRow key={p.name} hover>
             <TableCell>
               <Typography variant="body2">{p.name}</Typography>
+            </TableCell>
+            <TableCell>
+              <Typography variant="body2">{p.events}</Typography>
             </TableCell>
             <TableCell sx={{ maxWidth: 540 }}>
               <Typography
@@ -80,9 +84,6 @@ export const PixelsStub = () => (
                 {p.url}
               </Typography>
             </TableCell>
-            <TableCell>
-              <Typography variant="body2">{p.events}</Typography>
-            </TableCell>
             <TableCell align="right">
               <IconButton size="small" sx={{ color: "text.secondary" }}>
                 <MoreHorizIcon fontSize="small" />
@@ -92,5 +93,6 @@ export const PixelsStub = () => (
         ))}
       </TableBody>
     </Table>
+    </Box>
   </Box>
 );

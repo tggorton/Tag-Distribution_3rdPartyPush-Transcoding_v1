@@ -263,6 +263,62 @@ Commit: `82c50a5`.
 
 ---
 
+### 2026-09-02/03 — Session 13: Advertiser lock becomes account-wide
+
+**Commits:** `3b6aad6` (09-02), `1d3cc2e` (09-03). First feature work under the Team account.
+
+| Block | Prompting | AI Work | Notes |
+|---|---:|---:|---|
+| Announce the lock before it's set + rewrite copy so the lock reads as account-wide across all of Radius | 18m | 35m | Copy-iteration heavy; user supplied exact wording. |
+| Generalize lock messaging (no interpolated names) + "3rd party platform" → "3rd party system" rename | 12m | 20m | Small edits, several wording passes. |
+| **Session subtotal** | **~30m** | **~55m** | Sparse (2 commits / 2 days, conversation-driven copy). ~45% reduction off wall-clock. |
+
+---
+
+### 2026-10-14 — Session 14: Standards-backed Duration + Bitrate, bitrate reference, vault docs, Open Sans
+
+**Commit:** `b8c9d38` (+ `571423a` docs-expand on 08-13 folded in). Plus doc/vault/artifact work.
+
+| Block | Prompting | AI Work | Notes |
+|---|---:|---:|---|
+| Research vendor/publisher bitrate specs + author `docs/reference/video-encoding-bitrate-reference.md` | 15m | 40m | Web research + synthesis into a durable reference. |
+| Duration + Video Bitrate become spec-backed selectors (dropdown + Custom…); several UX iterations | 25m | 60m | User rejected freeSolo; settled on dropdown + explicit Custom, revert-on-blank. |
+| Obsidian vault product docs (per-feature + Distribution Setup + hub, cross-linked, Jira ticket links) | 20m | 50m | New `/Projects/_Documentation/` set; clickable `jira:` frontmatter. |
+| Open Sans switch across artifacts + ticket-link fixes | 10m | 20m | Standing font preference saved to memory. |
+| **Session subtotal** | **~70m** | **~170m** | Sparse (1 commit, research/doc-heavy + much uncommitted doc work). ~50% reduction. |
+
+---
+
+### 2026-10-22 — Session 15: Bitrate → single rates; presets read-only; Out of Spec removed (uncommitted)
+
+**Status:** code + docs/artifact updated, typecheck-clean; **no commit yet** (user deferred).
+
+| Block | Prompting | AI Work | Notes |
+|---|---:|---:|---|
+| Bitrate research (ranges vs. fixed, Disney specs) + model decision | 15m | 25m | Information-only research, then the fixed-rate call. |
+| Code: single-rate multiselect + `canonicalizeRates`, read-only field sheet, remove Out of Spec, admin preset-update re-transcode propagation | 25m | 90m | Many files across types/lib/state/components; typecheck gate green. |
+| Align all docs + artifact (handoff md, bitrate-ref note, vault doc, artifact HTML rewrite + republish, session/time logs) | 10m | 70m | Full Transcoding artifact rewrite, republished to same URL (V3). |
+| **Session subtotal** | **~50m** | **~185m** | Sparse-moderate; large single work arc, no commits to anchor on. Estimate — recalibrate if off. |
+
+---
+
+### 2026-10-23 — Session 16: Line-item page aligned to platform + discoverable custom bitrate
+
+**Status:** committed + pushed to `origin` (together with Session 15 — entangled at file level).
+
+| Block | Prompting | AI Work | Notes |
+|---|---:|---:|---|
+| Align line-item page to the platform (header Prev/Next + Set Default Creative, vertical detail list + thumbnail, split Creatives → Weighted/Direct, Pixels column order, App wiring) | 22m | 65m | Screenshot-driven; decisions via quick questions. |
+| Responsive tables (overflow-x containers + min-widths) + button `nowrap` + header/row wrap + section padding | 10m | 25m | Fix for the Distributions table running off-page. |
+| Keep our buttons' original names (revert) + verify push/export/transcode functionality unchanged | 10m | 15m | Labels/order only. |
+| Verify admin preset-creation flow (discussion, no code) | 6m | 10m | Confirmed intact. |
+| Discoverable "Add custom rate…" entry in bitrate (admin only) | 8m | 30m | `createFilterOptions`, single-rate gating. |
+| Drop "one rendition per rate" copy from the field helper | 3m | 5m | — |
+| Log + docs + artifact republish (V4) + commit/push | 8m | 50m | SESSION/TIME logs, handoff md, RESUME, reference, artifact. |
+| **Session subtotal** | **~65m** | **~200m** | Sparse-moderate; screenshot/conversation-heavy, no mid-work commits to anchor on. Estimate. |
+
+---
+
 ## Running totals
 
 | | Prompting | AI Work |
@@ -279,10 +335,14 @@ Commit: `82c50a5`.
 | Session 10 (2026-07-30 → 07-31) — Push model + multi-preset + incremental apply | 55m | 130m |
 | Session 11 (2026-08-03) — Link/unlink + advertiser lock + confirmations | 45m | 95m |
 | Session 12 (2026-08-13) — Continuity hand-off (docs/artifacts, account switch) | 40m | 90m |
-| **Total** | **~7h 46m** | **~17h 05m** |
+| Session 13 (2026-09-02/03) — Advertiser lock becomes account-wide | 30m | 55m |
+| Session 14 (2026-10-14) — Standards-backed selectors + bitrate reference + vault + Open Sans | 70m | 170m |
+| Session 15 (2026-10-22) — Bitrate → single rates; presets read-only; Out of Spec removed | 50m | 185m |
+| Session 16 (2026-10-23) — Line-item page aligned to platform + discoverable custom bitrate | 65m | 200m |
+| **Total** | **~11h 21m** | **~27h 05m** |
 
 > Sessions 1–6 (original tag + template tool) = ~3h 39m Prompting / ~7h 25m AI Work.
-> Sessions 7–12 (Transcoding + 3rd-Party Push chapter) = ~4h 07m Prompting / ~9h 40m AI Work.
+> Sessions 7–16 (Transcoding + 3rd-Party Push chapter) = ~7h 42m Prompting / ~19h 40m AI Work.
 
 ---
 

@@ -55,18 +55,17 @@ export interface Template {
  *   live       green  — conformed to a chosen platform preset; ready to serve
  *   processing amber  — transcoding / in flight
  *   error      red    — the transcode failed; retrying may fix it
- *   outOfSpec  orange — transcode settings were manually overridden and may not
- *                       meet the target pub/platform's spec. A *config* problem,
- *                       not a run failure — re-running the same settings would
- *                       reproduce it, so this is not restartable.
  *   inactive   grey   — off / dormant; restart rebuilds it
+ *
+ * There is no "out of spec": presets can't be overridden (regular users only
+ * select presets; admins edit the preset itself), so a distro can't diverge from
+ * a publisher spec.
  */
 export type DistroStatus =
   | "default"
   | "live"
   | "processing"
   | "error"
-  | "outOfSpec"
   | "inactive";
 
 /**
@@ -129,12 +128,11 @@ export type ParamFamilyKey = "nexxen" | "ttd" | "creative";
 export type TranscodeSettings = Record<string, string>;
 
 /**
- * One transcoding config the line-item applies. `presetId` records which preset
- * the settings were derived from; `settings` is the effective (possibly
- * hand-edited) value set. When `settings` diverges from that preset's canonical
- * values, the config is a one-off override for this line-item — the preset
- * itself is never mutated. A line-item applies a *list* of these
- * (`AppState.transcoding`); each distro is transcoded once per config.
+ * One transcoding config the line-item applies. `presetId` is the applied preset;
+ * `settings` is a snapshot of that preset's values, kept in sync when an admin
+ * edits the preset. Presets are not overridden per line-item. A line-item applies
+ * a *list* of these (`AppState.transcoding`); each distro is transcoded once per
+ * config.
  */
 export interface TranscodingConfig {
   presetId: string;

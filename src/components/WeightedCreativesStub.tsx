@@ -1,7 +1,6 @@
 import {
   Box,
   Button,
-  Chip,
   IconButton,
   Stack,
   Table,
@@ -20,36 +19,34 @@ const creatives = [
   {
     name: "Stratos_Hero_30s",
     creativeId: "8421",
-    playbackMode: "CTV",
-    status: "Active",
     weighting: "60%",
+    pixelName: "stratos_completion",
   },
   {
     name: "Stratos_Cutdown_15s",
     creativeId: "8422",
-    playbackMode: "Mobile",
-    status: "Active",
     weighting: "40%",
+    pixelName: "stratos_clickthrough",
   },
 ];
 
-export const CreativesStub = () => (
+export const WeightedCreativesStub = () => (
   <Box>
     <SectionHeader
-      title="Creatives"
+      title="Weighted Creatives"
+      subtitle="Used as fallback when no target type provided or targeting doesn't match"
       actions={
         <Button variant="outlined" color="primary" size="small">
-          Add Creative
+          Add Weighted Creatives
         </Button>
       }
     />
-    <Table size="small">
+    <Box sx={{ overflowX: "auto", maxWidth: "100%" }}>
+    <Table size="small" sx={{ minWidth: 640 }}>
       <TableHead>
         <TableRow>
           <TableCell>Name</TableCell>
-          <TableCell>Creative ID</TableCell>
-          <TableCell>Playback Mode</TableCell>
-          <TableCell>Status</TableCell>
+          <TableCell>Creative Id</TableCell>
           <TableCell>
             <Stack direction="row" alignItems="center" spacing={0.5}>
               <span>Weighting</span>
@@ -60,6 +57,7 @@ export const CreativesStub = () => (
               </Tooltip>
             </Stack>
           </TableCell>
+          <TableCell>Pixel Name</TableCell>
           <TableCell align="right">Actions</TableCell>
         </TableRow>
       </TableHead>
@@ -75,19 +73,12 @@ export const CreativesStub = () => (
               </Typography>
             </TableCell>
             <TableCell>
-              <Typography variant="body2">{c.playbackMode}</Typography>
-            </TableCell>
-            <TableCell>
-              <Chip
-                label={c.status}
-                size="small"
-                color="success"
-                variant="outlined"
-                sx={{ height: 22 }}
-              />
-            </TableCell>
-            <TableCell>
               <Typography variant="body2">{c.weighting}</Typography>
+            </TableCell>
+            <TableCell>
+              <Typography variant="body2" color="text.secondary">
+                {c.pixelName}
+              </Typography>
             </TableCell>
             <TableCell align="right">
               <IconButton size="small" sx={{ color: "text.secondary" }}>
@@ -98,5 +89,6 @@ export const CreativesStub = () => (
         ))}
       </TableBody>
     </Table>
+    </Box>
   </Box>
 );

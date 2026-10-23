@@ -5,7 +5,8 @@ import { AppSidebar } from "./components/AppSidebar";
 import { PageTopBar } from "./components/PageTopBar";
 import { LineItemHeader } from "./components/LineItemHeader";
 import { CampaignDetailsStub } from "./components/CampaignDetailsStub";
-import { CreativesStub } from "./components/CreativesStub";
+import { WeightedCreativesStub } from "./components/WeightedCreativesStub";
+import { DirectCreativesStub } from "./components/DirectCreativesStub";
 import { DistrosSection } from "./components/DistrosSection";
 import { PixelsStub } from "./components/PixelsStub";
 
@@ -25,9 +26,10 @@ export const App = () => (
           <PageTopBar />
           <Box sx={{ px: 4, pb: 8 }}>
             <LineItemHeader name="RedBull_Vid_Stratos_Awareness_Q1_2019" />
-            <Stack spacing={5}>
+            <Stack spacing={8}>
               <CampaignDetailsStub />
-              <CreativesStub />
+              <WeightedCreativesStub />
+              <DirectCreativesStub />
               <DistrosSection />
               <PixelsStub />
             </Stack>

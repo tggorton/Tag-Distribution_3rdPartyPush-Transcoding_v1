@@ -6,6 +6,7 @@ import type {
   DistroStatus,
   DistroTranscode,
   PlatformStatus,
+  TranscodePreset,
   TranscodingConfig,
 } from "../types";
 import { buildDistroUrl } from "../lib/tagBuilder";
@@ -33,6 +34,7 @@ export const DistrosSection = () => {
     setDistrosTranscodes,
     setDistrosPlatformStatus,
     setTranscodings,
+    updateTranscodePreset,
     rememberPlatformAdvertiser,
   } = useApp();
   const { confirm, confirmDialog } = useConfirm();
@@ -102,7 +104,7 @@ export const DistrosSection = () => {
       const landing = state.transcoding.map(
         (c): DistroTranscode => ({
           presetId: c.presetId,
-          status: transcodeLandingStatus(c, presets),
+          status: transcodeLandingStatus(c),
         }),
       );
       setDistroTranscodes(distro.id, landing);
@@ -241,7 +243,7 @@ export const DistrosSection = () => {
         };
       });
 
-    const landed = buildEntries((c) => transcodeLandingStatus(c, presets));
+    const landed = buildEntries((c) => transcodeLandingStatus(c));
 
     // Nothing new/changed (e.g. only a reorder or removal) — commit without a
     // Processing pass.
@@ -262,6 +264,36 @@ export const DistrosSection = () => {
     restartTimers.current.push(timer);
   };
 
+  // Admin updates a preset → every distro that uses it re-transcodes to match
+  // (processing → live). The reducer re-syncs the line-item config settings; here
+  // we drive the per-distro status animation (prototype stand-in for the backend).
+  const handleUpdatePreset = (preset: TranscodePreset) => {
+    updateTranscodePreset(preset);
+    const affected = state.distros.filter((d) =>
+      d.transcodes.some((t) => t.presetId === preset.id),
+    );
+    if (affected.length === 0) {
+      setSnack(`Updated preset "${preset.name}"`);
+      return;
+    }
+    const withStatus = (status: DistroStatus) =>
+      affected.map((d) => ({
+        id: d.id,
+        transcodes: d.transcodes.map((t) =>
+          t.presetId === preset.id ? { ...t, status } : t,
+        ),
+      }));
+    const n = affected.length;
+    const plural = n === 1 ? "" : "s";
+    setDistrosTranscodes(withStatus("processing"));
+    setSnack(`"${preset.name}" updated — re-transcoding ${n} distribution${plural}…`);
+    const timer = window.setTimeout(() => {
+      setDistrosTranscodes(withStatus("live"));
+      setSnack(`"${preset.name}" updated — ${n} distribution${plural} re-transcoded`);
+    }, RESTART_SIMULATION_MS);
+    restartTimers.current.push(timer);
+  };
+
   const handleExport = () => {
     if (!hasDistros) {
       setSnack("No distributions to export");
@@ -276,7 +308,9 @@ export const DistrosSection = () => {
       <SectionHeader
         title="Distributions"
         actions={
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap", gap: 1 }}>
+            {/* Native platform action first (Add Distribution Tag), then this
+                project's additions, keeping their original names. */}
             <Button
               variant="outlined"
               color="primary"
@@ -351,6 +385,7 @@ export const DistrosSection = () => {
         onClose={() => setTranscodeOpen(false)}
         onApply={handleApplyTranscoding}
         onSaved={(message) => setSnack(message)}
+        onUpdatePreset={handleUpdatePreset}
       />
       <Snackbar
         open={Boolean(snack)}

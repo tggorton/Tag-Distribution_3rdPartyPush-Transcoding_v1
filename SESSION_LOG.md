@@ -440,6 +440,129 @@ account: [`docs/RESUME.md`](docs/RESUME.md) is your starting point.
 
 ---
 
+### 2026-09-02/03 — Session 13: The advertiser lock becomes account-wide
+
+**Commits:** `3b6aad6` (announce the lock before it's set, 09-02), `1d3cc2e` (lock is
+account-wide across Radius, not per line item, 09-03). (The earlier disable + lock-icon +
+per-platform/confirm work is Session 11's `666e177`/`bf97c74`, 2026-08-03.)
+
+Continuing the **3rd-Party Push** track under the new Team account.
+
+- **Announce the lock before it's set.** An inline notice now warns that pushing will lock
+  the advertiser, *before* the user commits — not just a confirmation after the fact.
+- **The lock is a bigger deal than "per line item."** The user corrected the model:
+  assigning an advertiser to a 3rd-party **system** locks that association **globally
+  within the Radius Platform**, not just on this line item. Copy was rewritten to say so
+  ("Pushing locks this advertiser to the 3rd-party platform across all of Radius…") and
+  the confirmation spells out that the association "can't be changed without support."
+- **Generalized copy.** All lock messaging dropped interpolated advertiser/platform names
+  so the copy isn't dynamic per-platform — it reads the same regardless of target.
+- **"3rd party platform" → "3rd party system"** in the confirmation, at the user's request.
+
+### 2026-10-14 — Session 14: Standards-backed Duration + Bitrate, docs, vault, Open Sans
+
+**Commit:** `b8c9d38` (Duration + Bitrate become standards-backed selectors). Plus
+doc/vault/artifact work that is doc-only.
+
+- **Duration & Video Bitrate stop being free text.** Both became spec-backed selectors
+  (dropdown + Custom…). The bitrate list was grounded in a new in-repo reference,
+  [`docs/reference/video-encoding-bitrate-reference.md`](docs/reference/video-encoding-bitrate-reference.md),
+  synthesized from public specs (IAB 2026, TTD, Amazon, Disney/Hulu, Prime, FreeWheel,
+  DV360). At this point bitrate options were still **ranges**, grouped into two tiers
+  (playback rendition vs. source/mezzanine).
+- **Obsidian vault product docs** created under `/Projects/_Documentation/` — one doc per
+  feature (3rd-Party Push, Transcoding) plus Distribution Setup and a project hub, all
+  cross-linked, with Jira ticket links (Transcoding WEB-1410, 3rd-Party Push WEB-1404,
+  Dynamic Scheduling WEB-1812) exposed as a clickable `jira:` frontmatter property.
+- **Open Sans everywhere** — standing preference saved to memory: hand-off Artifacts and
+  future iterations use Open Sans (body + headings), keeping a system monospace only for
+  code/tag strings.
+
+### 2026-10-22 — Session 15: Transcoding bitrate → single rates; presets become read-only (IN PROGRESS, uncommitted)
+
+**Status:** code + all docs/artifacts updated and typecheck-clean; **no commit or push
+yet** — the user paused to move to another project and explicitly asked to log state and
+align docs/artifacts first.
+
+Research confirmed industry specs are predominantly **ranges/minimums**, but the Radius
+backend needs **fixed rates**. That drove a model change, and the user layered two
+clarifications on top of it:
+
+- **Bitrate is now a multi-select of single, fixed rates.** No range-averaging — the
+  pipeline produces **one rendition per selected rate**. The ladder
+  (`1·2·3·4·5·6·8·10·12·15·20·25·30·40·50 Mbps`) is chosen so at least one rate lands
+  inside every known publisher band. New helper `canonicalizeRates` validates/sorts the
+  comma-joined list; `bitrate` field type is `multiselect`.
+- **Regular users can no longer override presets.** The field sheet is **read-only** for
+  users (`TranscodeFieldsGrid` gained a `readOnly` prop) — they select presets, nothing
+  more. **Custom rates and all field edits are admin-only**, made in the preset catalog
+  manager.
+- **"Out of Spec" is gone.** With overrides removed, nothing can diverge from spec, so the
+  status was deleted entirely — `DistroStatus` is now five states
+  (`default | live | processing | error | inactive`). `transcodeLandingStatus` collapsed to
+  `default` (untouched baseline) vs. `live`. `palette.outOfSpec` removed from the theme.
+- **An admin preset Update re-transcodes every distro using it.** `updateTranscodePreset`
+  re-syncs each line-item config on that preset; `DistrosSection.handleUpdatePreset` drives
+  the affected distros Processing → landing. Propagation **scope** (account-wide vs.
+  line-item, immediate vs. queued) is the top open question for the backend.
+
+**Aligned this session (no code-behavior change):** `docs/handoff-transcoding.md`, the
+bitrate reference note, the vault Transcoding doc, and the Transcoding hand-off Artifact
+(republished to the same URL, Version 3) — all now describe single-rate multi-select,
+read-only presets, admin-only custom, preset-update propagation, and the five states.
+
+**Next pick-up:** commit the Session-15 code + docs when the user authorizes (they asked
+to defer). Nothing else is mid-edit. *(Committed in Session 16, together with that session's
+work.)*
+
+---
+
+### 2026-10-23 — Session 16: Line-item page aligned to the real platform + discoverable custom bitrate
+
+**Committed with Session 15** (the two were never separated and are entangled at the file
+level, so one commit captures both): finalize the transcoding model **and** the page
+restructure. Pushed to `origin`.
+
+The user supplied a screenshot of the **actual Radius line-item screen** and asked to align
+our prototype's sections, section names, and buttons to it — keeping our visual style and all
+the new feature work (Transcoding, 3rd-Party Push). Decisions were theirs (via quick
+questions): split Creatives into two; new vs. native buttons inline (no divider); keep the
+existing demo rows in every table.
+
+- **Header** gained **Prev / Next**, a **"1 of 1"** indicator, and **Set Default Creative**
+  alongside Clone This Line Item ([LineItemHeader]).
+- **Line-item details** became the platform's **vertical label/value list** with edit pencils
+  + a default-creative **thumbnail** placeholder, in the platform's field order (added
+  Skippable, Default Creative, Dynamic Product Updater Status; `Impression Budget` →
+  **Impressions Goal**; Rate → **$0 CPM**).
+- **Creatives split** into **Weighted Creatives** (subtitle + *Add Weighted Creatives*; cols
+  Name / Creative Id / Weighting / Pixel Name) and **Direct Creatives** (*DAI Template
+  Upload*; cols Name / Creative Id / Target / Pixel Name). The old single `CreativesStub`
+  was removed; `SectionHeader` gained an optional `subtitle`.
+- **Pixels** columns reordered to **Name / Event Types / Pixel URL / Actions**.
+- **Distributions buttons:** native `+ Add Distribution Tag` matches the platform; **our
+  buttons kept their original names** — *Transcoding Settings*, *Push Tags to Platform*,
+  *Export Tags* (I'd briefly renamed Export → "Export Distribution Tags"; the user asked to
+  keep ours as they were, so it's back). **Functionality unchanged** — only labels/order.
+- **Responsiveness fix.** The Distributions table was running off-page. Every section table
+  is now wrapped in an `overflow-x: auto` container with a sensible `min-width`, so a wide
+  table scrolls **within its section** instead of pushing the page sideways. Button labels no
+  longer wrap into tall blocks (`whiteSpace: nowrap` on the button theme), and section
+  headers / button rows wrap gracefully. Inter-section padding bumped (`spacing` 5 → 8).
+- **Discoverable custom bitrate (admin).** The bitrate multi-select already accepted a typed
+  custom single rate; added an explicit **"Add custom rate…"** dropdown entry that appears
+  once the typed text normalizes to a valid single rate (a range is rejected via
+  `canonicalizeRates`). Scope unchanged — editable only in the admin preset manager; the
+  user-facing sheet stays read-only.
+- **Copy cleanup.** Dropped the confusing **"one rendition per rate"** wording from the
+  bitrate field helper text (and softened it in the docs/artifact/reference).
+
+**Why it matters:** the prototype now reads as the same screen the team already knows, with
+our additions slotted in where they belong — which is what makes the hand-off legible. Docs,
+the bitrate reference, `RESUME.md`, and the Transcoding Artifact were all updated to match.
+
+---
+
 ## Future considerations
 
 These are user-flagged items or implementation seams that are **not** part of the current build but that the structure should accommodate cleanly when they come up.

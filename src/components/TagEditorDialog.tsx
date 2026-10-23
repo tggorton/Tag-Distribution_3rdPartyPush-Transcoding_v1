@@ -197,7 +197,7 @@ export const TagEditorDialog = ({
     // transcode per applied config, each landing on its config's status.
     transcodes: state.transcoding.map((c) => ({
       presetId: c.presetId,
-      status: transcodeLandingStatus(c, state.transcodePresets),
+      status: transcodeLandingStatus(c),
     })),
     platformStatus: "notPushed",
   });

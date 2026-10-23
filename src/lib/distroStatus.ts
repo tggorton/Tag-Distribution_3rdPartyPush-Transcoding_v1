@@ -32,12 +32,6 @@ export const STATUS_META: Record<
     color: "error.main",
     description: "Error — transcoding failed. Restart to try again.",
   },
-  outOfSpec: {
-    label: "Out of Spec",
-    color: "outOfSpec.main",
-    description:
-      "Out of spec — transcode settings were manually overridden and may not meet the target platform's spec. Fix the settings; a restart won't clear this.",
-  },
   inactive: {
     label: "Inactive",
     color: "text.disabled",
@@ -50,7 +44,6 @@ export const STATUS_ORDER: DistroStatus[] = [
   "live",
   "processing",
   "error",
-  "outOfSpec",
   "inactive",
 ];
 
@@ -66,10 +59,6 @@ export const DEFAULT_DISTRO_STATUS: DistroStatus = "live";
  * states: `inactive` (dormant — rebuild it) and `error` (transcode failed — try
  * again). A `live` distro has nothing to fix, and a `processing` one is already
  * mid-run.
- *
- * `outOfSpec` is deliberately excluded: it's a *settings* problem, so re-running
- * the same overridden settings would just reproduce it. The fix is to edit the
- * distro, not to restart it.
  */
 export const isRestartable = (status: DistroStatus): boolean =>
   status === "inactive" || status === "error";
@@ -84,12 +73,8 @@ export const restartActionLabel = (status: DistroStatus): string =>
  * Why the restart button is disabled. A greyed-out control with no explanation
  * is a support ticket — say what state it's in, and what would actually help.
  */
-export const restartDisabledReason = (status: DistroStatus): string => {
-  if (status === "outOfSpec") {
-    return "Out of spec is a settings problem — edit the distro's transcode settings. A restart would re-run the same overrides.";
-  }
-  return `Restart applies to an Inactive or Error distro (this one is ${STATUS_META[status].label}).`;
-};
+export const restartDisabledReason = (status: DistroStatus): string =>
+  `Restart applies to an Inactive or Error distro (this one is ${STATUS_META[status].label}).`;
 
 /**
  * Prototype stand-in: how long a restarted distro sits in `processing` before

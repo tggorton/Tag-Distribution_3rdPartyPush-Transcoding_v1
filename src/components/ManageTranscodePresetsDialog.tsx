@@ -29,6 +29,9 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSaved?: (message: string) => void;
+  /** Propagating update: changes the preset AND re-transcodes every distro that
+   *  uses it. Falls back to a plain catalog update when not provided. */
+  onUpdatePreset?: (preset: TranscodePreset) => void;
 }
 
 interface FormState {
@@ -40,6 +43,7 @@ export const ManageTranscodePresetsDialog = ({
   open,
   onClose,
   onSaved,
+  onUpdatePreset,
 }: Props) => {
   const { state, addTranscodePreset, updateTranscodePreset, deleteTranscodePreset } =
     useApp();
@@ -142,13 +146,20 @@ export const ManageTranscodePresetsDialog = ({
     if (!selectedPreset) return;
     if (!requireValidName(selectedPreset.id)) return;
     const name = form.name.trim();
-    updateTranscodePreset({
+    const updated: TranscodePreset = {
       ...selectedPreset,
       name,
       shortName: shortenName(name),
       settings: { ...form.settings },
-    });
-    onSaved?.(`Updated preset "${name}"`);
+    };
+    // Prefer the propagating handler (updates the preset AND re-transcodes every
+    // distro using it); fall back to a plain catalog update if none was provided.
+    if (onUpdatePreset) {
+      onUpdatePreset(updated);
+    } else {
+      updateTranscodePreset(updated);
+      onSaved?.(`Updated preset "${name}"`);
+    }
   };
 
   const handleDelete = async () => {

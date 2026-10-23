@@ -1,0 +1,542 @@
+<title>Transcoding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap">
+
+<style>
+  :root {
+    --bg: #EEF0F3; --surface: #FFFFFF; --surface-2: #F6F7F9; --sunken: #EDEFF3;
+    --ink: #14171C; --ink-2: #545A66; --ink-3: #838A97;
+    --line: #E1E4EA; --line-strong: #CED3DB;
+    --accent: #D80070; --accent-2: #EF0078; --accent-soft: #FBE4F0; --nav: #001529;
+    --s-green: #1E9C68; --s-amber: #B8791A; --s-red: #D2373C; --s-orange: #CF551F; --s-grey: #7C8390;
+    --sans: "Open Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --display: "Open Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --radius: 12px; --maxw: 800px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101216; --surface: #181B21; --surface-2: #1F232A; --sunken: #0D0F13;
+      --ink: #EDEFF4; --ink-2: #ADB3BF; --ink-3: #7C8391;
+      --line: #292D36; --line-strong: #394050;
+      --accent: #FF4DA0; --accent-2: #FF4DA0; --accent-soft: #2B1421; --nav: #A9C2DE;
+      --s-green: #46C88C; --s-amber: #F1B24E; --s-red: #F06E72; --s-orange: #F4895A; --s-grey: #8E949F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101216; --surface: #181B21; --surface-2: #1F232A; --sunken: #0D0F13;
+    --ink: #EDEFF4; --ink-2: #ADB3BF; --ink-3: #7C8391;
+    --line: #292D36; --line-strong: #394050;
+    --accent: #FF4DA0; --accent-2: #FF4DA0; --accent-soft: #2B1421; --nav: #A9C2DE;
+    --s-green: #46C88C; --s-amber: #F1B24E; --s-red: #F06E72; --s-orange: #F4895A; --s-grey: #8E949F;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans);
+    line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px 96px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+
+  header.hero { padding: 64px 0 30px; border-bottom: 1px solid var(--line); }
+  .kicker { display: inline-flex; align-items: center; gap: 9px; font-family: var(--mono);
+    font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  .kicker .sig { width: 22px; height: 3px; background: var(--accent); border-radius: 2px; }
+  h1 { font-family: var(--display); font-weight: 700; font-size: clamp(40px, 8vw, 68px);
+    line-height: 1.0; letter-spacing: -0.02em; margin: 20px 0 0; text-wrap: balance; }
+  .lede { font-size: clamp(17px, 2.3vw, 20px); color: var(--ink-2); max-width: 60ch; margin: 18px 0 0; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 26px; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 12px;
+    color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; }
+  .pill strong { color: var(--ink); font-weight: 600; }
+  .pill.now { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+  .pill.now strong { color: var(--accent); }
+
+  section { padding-top: 46px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600; }
+  h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 4vw, 31px);
+    letter-spacing: -0.01em; line-height: 1.15; margin: 8px 0 0; text-wrap: balance; }
+  h3 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 26px 0 6px; letter-spacing: -0.01em; }
+  p { margin: 14px 0 0; }
+  p, li { color: var(--ink-2); }
+  p strong, li strong { color: var(--ink); font-weight: 600; }
+  .sec-intro { font-size: 17px; margin-top: 12px; max-width: 66ch; }
+  ul { margin: 14px 0 0; padding-left: 0; list-style: none; }
+  ul.bul li { position: relative; padding-left: 20px; margin-top: 9px; }
+  ul.bul li::before { content: ""; position: absolute; left: 3px; top: 10px; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--accent); }
+  code, .mono { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; color: var(--ink); }
+
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    border-radius: var(--radius); padding: 20px 24px; margin-top: 22px; }
+  .callout .eyebrow { color: var(--accent); }
+  .callout p { margin-top: 7px; color: var(--ink-2); }
+  .callout.note { border-left-color: var(--s-amber); }
+
+  .inv { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
+  @media (max-width: 640px) { .inv { grid-template-columns: 1fr; } }
+  .invcard { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px; }
+  .invcard h4 { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600; margin: 0 0 12px; }
+  .invcard ul { margin: 0; }
+  .invcard li { position: relative; padding-left: 24px; margin-top: 10px; font-size: 14.5px; color: var(--ink-2); line-height: 1.5; }
+  .invcard li:first-child { margin-top: 0; }
+  .invcard li::before { content: ""; position: absolute; left: 0; top: 3px; width: 14px; height: 14px;
+    border-radius: 4px; background: var(--accent-soft); border: 1px solid var(--accent); }
+  .invcard li::after { content: ""; position: absolute; left: 4.5px; top: 6px; width: 4px; height: 7px;
+    border: solid var(--accent); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .invcard.muted li::before { background: var(--surface-2); border-color: var(--line-strong); }
+  .invcard.muted li::after { border-color: var(--ink-3); }
+
+  .tbl-scroll { overflow-x: auto; margin-top: 20px; border: 1px solid var(--line); border-radius: var(--radius); }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 540px; }
+  th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  thead th { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600; background: var(--surface-2); }
+  td { color: var(--ink-2); }
+  td.desc strong, td strong { color: var(--ink); }
+  .stname { display: inline-flex; align-items: center; gap: 9px; color: var(--ink); font-weight: 600; white-space: nowrap; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 20px; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px 6px 11px; }
+  .chip .k { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .dot--ring { background: transparent !important; border: 1.6px solid; }
+  .d-green { background: var(--s-green); border-color: var(--s-green); }
+  .d-amber { background: var(--s-amber); border-color: var(--s-amber); }
+  .d-red { background: var(--s-red); border-color: var(--s-red); }
+  .d-orange { background: var(--s-orange); border-color: var(--s-orange); }
+  .d-grey { background: var(--s-grey); border-color: var(--s-grey); }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; margin-top: 22px; border: 1px solid var(--line);
+    border-radius: var(--radius); overflow: hidden; }
+  @media (max-width: 640px) { .split { grid-template-columns: 1fr; } }
+  .split > div { padding: 18px 20px; }
+  .split > div:first-child { border-right: 1px solid var(--line); background: var(--surface-2); }
+  @media (max-width: 640px) { .split > div:first-child { border-right: none; border-bottom: 1px solid var(--line); } }
+  .split h4 { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 6px; }
+  .split .proto h4 { color: var(--s-amber); }
+  .split .prod h4 { color: var(--s-green); }
+  .split ul { margin: 0; }
+  .split li { position: relative; padding-left: 16px; margin-top: 9px; font-size: 14px; }
+  .split li::before { content: ""; position: absolute; left: 0; top: 9px; width: 5px; height: 5px; border-radius: 50%; background: var(--ink-3); }
+
+  .imap { margin-top: 22px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .imap .row { padding: 16px 20px; border-top: 1px solid var(--line); }
+  .imap .row:first-child { border-top: none; }
+  .imap .lbl { font-family: var(--mono); font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 8px; }
+  .imap .item { margin-top: 7px; font-size: 14px; color: var(--ink-2); }
+  .imap .item:first-of-type { margin-top: 0; }
+  .imap .fn { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+  .swaps { counter-reset: swap; }
+  .swaps .item { position: relative; padding-left: 30px; margin-top: 11px; }
+  .swaps .item::before { counter-increment: swap; content: counter(swap); position: absolute; left: 0; top: -1px;
+    width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff;
+    font-family: var(--mono); font-size: 11px; font-weight: 600; display: grid; place-items: center; }
+
+  .steps { counter-reset: step; margin-top: 22px; display: flex; flex-direction: column; gap: 12px; }
+  .step { position: relative; padding: 16px 18px 16px 58px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .step::before { counter-increment: step; content: counter(step); position: absolute; left: 16px; top: 15px;
+    width: 28px; height: 28px; border-radius: 8px; background: var(--nav); color: #fff;
+    font-family: var(--mono); font-weight: 600; font-size: 14px; display: grid; place-items: center; }
+  :root[data-theme="dark"] .step::before, :root:not([data-theme="light"]) .step::before { color: #0D0F13; }
+  .step h4 { margin: 0 0 2px; font-size: 15px; font-weight: 600; color: var(--ink); font-family: var(--display); }
+  .step p { margin: 0; font-size: 14px; }
+
+  /* ================= UI MOCKUPS — fixed real dark-app palette (read as screenshots) ================= */
+  .mock { border: 1px solid #2a2a2a; border-radius: var(--radius); background: #383838; color: #fff;
+    overflow: hidden; margin-top: 22px; box-shadow: 0 18px 40px -24px rgba(0,0,0,0.5); }
+  .mock-cap { padding: 10px 15px; border-bottom: 1px solid #4a4a4a; background: #2e2e2e; font-family: var(--mono);
+    font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: rgba(255,255,255,0.5);
+    display: flex; align-items: center; gap: 8px; }
+  .mock-cap .lts { display: inline-flex; gap: 6px; }
+  .mock-cap .lts i { width: 9px; height: 9px; border-radius: 50%; background: #555; }
+  .mock-body { padding: 18px 16px; overflow-x: auto; }
+  .mock .mcap-note { color: #cdcdcd; font-size: 13.5px; margin: 16px 2px 0; line-height: 1.5; }
+  .mock .mcap-note strong { color: #fff; }
+  .mock .mono { background: rgba(255,255,255,0.08); border-color: #4a4a4a; color: #eee; }
+  .schip { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #cdcdcd; white-space: nowrap; line-height: 1.5; }
+  .sdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .sdot.ring { background: transparent !important; border: 1.5px solid; }
+  .g { background: #66bb6a; border-color: #66bb6a; } .a { background: #ffa726; border-color: #ffa726; }
+  .r { background: #f44336; border-color: #f44336; } .o { background: #F26522; border-color: #F26522; }
+  .gr { background: rgba(255,255,255,0.55); border-color: rgba(255,255,255,0.55); }
+  .chipcol { display: inline-flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+  .dtbl { width: 100%; border-collapse: collapse; min-width: 620px; font-size: 13px; }
+  .dtbl th { text-align: left; font-size: 11px; font-weight: 500; color: #cdcdcd; padding: 2px 16px 12px; white-space: nowrap; border: none; background: none; font-family: var(--sans); letter-spacing: 0; text-transform: none; }
+  .dtbl th.ra, .dtbl td.ra { text-align: right; }
+  .dtbl td { padding: 12px 16px; border-top: 1px solid #4a4a4a; border-bottom: none; vertical-align: middle; color: #cdcdcd; }
+  .dtbl .nm { color: #fff; white-space: nowrap; }
+  .turl { font-family: var(--mono); font-size: 12px; color: #cdcdcd; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; max-width: 200px; display: inline-block; vertical-align: middle; }
+  .acts { display: inline-flex; gap: 7px; justify-content: flex-end; }
+  .ico { display: inline-flex; width: 18px; height: 18px; color: #cdcdcd; flex-shrink: 0; }
+  .ico svg { width: 100%; height: 100%; fill: currentColor; }
+  .ico.dis { color: rgba(255,255,255,0.3); }
+  .finput { position: relative; border: 1px solid rgba(255,255,255,0.23); border-radius: 4px; padding: 13px 12px;
+    font-size: 14px; color: #fff; background: transparent; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .finput .fl { position: absolute; top: -7px; left: 9px; padding: 0 5px; background: #383838; font-size: 11px; color: #cdcdcd; }
+  .finput .car { color: #cdcdcd; font-size: 20px; line-height: 0.5; }
+  .finput.foc { border-color: #EF0078; }
+  .finput.foc .fl { color: #EF0078; }
+  .fhelp { font-size: 12px; color: #cdcdcd; margin: 5px 4px 0; }
+  .mbtn { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 6px 8px; border-radius: 4px; white-space: nowrap; }
+  .mbtn.text { color: #EF0078; } .mbtn.out { border: 1px solid rgba(239,0,120,0.5); color: #EF0078; padding: 5px 11px; }
+  .mbar { display: flex; align-items: center; gap: 10px; }
+  .grow { flex: 1; }
+  /* transcoding-specific */
+  .mgrid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px 12px; margin: 16px 0 2px; }
+  .mtag { display: inline-flex; align-items: center; font-size: 10px; font-weight: 600; letter-spacing: .03em;
+    color: #EF0078; border: 1px solid #EF0078; border-radius: 4px; padding: 0 6px; height: 17px; line-height: 15px; }
+  .mochip { display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; padding: 3px 10px;
+    border-radius: 4px; background: #F26522; color: #000; white-space: nowrap; }
+  .mmenu { border: 1px solid #4a4a4a; border-radius: 6px; background: #2b2b2b; overflow: hidden; }
+  .mmenu .gh { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: rgba(255,255,255,.5); padding: 9px 13px 4px; font-weight: 600; }
+  .mmenu .mi { padding: 7px 13px; font-size: 13px; color: #cdcdcd; display: flex; align-items: center; gap: 8px; }
+  .mmenu .mi.sel { background: rgba(239,0,120,.20); color: #fff; }
+  .mmenu .mi.cust { color: #EF0078; border-top: 1px solid #4a4a4a; }
+  .prow { padding: 16px 0; border-top: 1px solid #4a4a4a; }
+  .prow.first { border-top: none; padding-top: 2px; }
+
+  footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13.5px; }
+  footer a { color: var(--ink-2); }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <span class="kicker"><span class="sig"></span>Radius Ad-Tags · Prototype hand-off</span>
+    <h1>Transcoding</h1>
+    <p class="lede">Conforming a line item's creatives to publisher delivery specs — one or more presets per line item — with a per-distro Transcode Status the team can act on.</p>
+    <div class="meta">
+      <span class="pill">as of <strong>2026-10-23</strong></span>
+      <span class="pill">React · TypeScript · MUI</span>
+      <span class="pill"><span class="mono">localhost:5180</span></span>
+      <span class="pill">Companion: <strong>3rd-Party Push</strong></span>
+    </div>
+  </header>
+
+  <section>
+    <span class="eyebrow">Read this first</span>
+    <h2>A behavior prototype, not a partial build</h2>
+    <p class="sec-intro">There's no backend — the transcode itself is <strong>simulated</strong> (a timer), and all state lives in the browser (localStorage). The job is to pin down the intended behavior and screens so the team can scope and build the real pipeline. Most importantly: <strong>the backend owns the transcode lifecycle</strong>; the UI only reflects it and offers a restart.</p>
+    <div class="callout">
+      <span class="eyebrow">Foundations (shared with 3rd-Party Push)</span>
+      <p><strong>Two status lifecycles.</strong> Every distribution tag carries two independent statuses, one column each: <strong>Transcode Status</strong> (this doc) and <strong>Platform Status</strong> (the Push doc). A tag can be transcoded and live yet never pushed. <strong>Roles:</strong> a user/admin toggle gates admin tools, which appear as an edit pencil next to a dropdown inside a modal. <strong>Readability:</strong> each status is a colored dot <em>and</em> a label; same-hue states are told apart by a ring-vs-solid dot.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Everything it entails</span>
+    <h2>Feature inventory</h2>
+    <p class="sec-intro">Every unique behavior the Transcoding track adds, at a glance. Each is detailed in the sections that follow.</p>
+    <div class="inv">
+      <div class="invcard">
+        <h4>Applying presets</h4>
+        <ul>
+          <li><strong>Transcoding Settings</strong> modal — applies one or more presets; every distro is transcoded <strong>once per preset</strong>.</li>
+          <li><strong>~15 fields</strong> grouped Video / Audio, shared by every preset — presets differ only in <em>values</em>.</li>
+          <li><strong>Standards-backed inputs</strong> — Duration is a dropdown of spec durations; <strong>Video Bitrate is a multi-select of single rates</strong> (no ranges).</li>
+          <li><strong>Read-only for users</strong> — regular users pick presets only; the field sheet can't be overridden.</li>
+          <li><strong>Collapsible rows</strong> + <strong>+ Add Preset</strong> (inserts at top, scrolls to it).</li>
+          <li><strong>Incremental apply</strong> — only new/changed presets reprocess.</li>
+        </ul>
+      </div>
+      <div class="invcard">
+        <h4>Presets &amp; admin catalog</h4>
+        <ul>
+          <li>Presets are <strong>publisher specs</strong> (Hulu, Disney+, Netflix, …). DSPs are push targets, not presets.</li>
+          <li><strong>Mutable admin catalog</strong> — a pencil opens Save New / Update / Delete. The <code>Default</code> baseline is protected. <strong>Custom values &amp; field edits are admin-only</strong>, made here.</li>
+          <li><strong>Updating a preset re-transcodes</strong> every distribution using it, across the line item.</li>
+          <li><strong>Bitrates trace to published specs</strong> where available (Disney+/Hulu, Prime, Peacock, Roku, …).</li>
+        </ul>
+      </div>
+      <div class="invcard">
+        <h4>Transcode Status (per distro)</h4>
+        <ul>
+          <li>A dedicated <strong>Transcode Status</strong> column, independent of Platform Status.</li>
+          <li>Five states — Default / Live / Processing / Error / Inactive. (No "Out of Spec" — presets can't be overridden.)</li>
+          <li><strong>One chip per applied preset</strong>, stacked, each naming its publisher.</li>
+          <li><strong>Restart</strong> row icon — enabled only when Inactive or Error; confirms first.</li>
+        </ul>
+      </div>
+      <div class="invcard muted">
+        <h4>Prototype-only (gone in production)</h4>
+        <ul>
+          <li><span class="mono">⋯</span> menu "Set transcode status" to force any state.</li>
+          <li><span class="mono">Processing → landing</span> is a fixed timer, standing in for the pipeline.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">The settings</span>
+    <h2>What it does</h2>
+    <p class="sec-intro"><strong>Transcoding Settings</strong> (a button in the Distributions section, available to all users) opens a per-line-item panel that applies <strong>one or more presets</strong>. Every distribution tag is transcoded <strong>once per preset</strong>, and each tag's applied presets show as a stack of chips in its Transcode Status column.</p>
+    <ul class="bul">
+      <li>The panel is a <strong>list of preset rows</strong>, each a preset picker over the shared field sheet. Rows are collapsed by default; expand (chevron) to view the fields. For regular users the sheet is <strong>read-only</strong> — you select a preset, you don't edit its fields.</li>
+      <li>Picking a preset <strong>fills that row's sheet</strong>. The only way to change a preset's values is for an <strong>admin to edit the preset itself</strong> (pencil → catalog manager); that change then propagates to every line item using it.</li>
+      <li><strong>+ Add Preset</strong> inserts a new row at the top and scrolls to it. <strong>Delete</strong> drops a row; deleting the last one confirms and resets to the Default baseline.</li>
+      <li><strong>Incremental apply</strong> — applying only reprocesses new or changed presets; unchanged presets keep each distro's current status.</li>
+    </ul>
+  </section>
+
+  <section>
+    <span class="eyebrow">New — standards-backed inputs</span>
+    <h2>Duration &amp; Video Bitrate</h2>
+    <p class="sec-intro">Two fields that used to be free text are now <strong>spec-backed selectors</strong>. <strong>Video Bitrate is a multi-select of single, fixed rates</strong> — no ranges, no averaged bands, so a preset can carry several rates at once. The ladder (1–50 Mbps) is <strong>grounded in public specs</strong> (IAB 2026, The Trade Desk, Amazon, Disney/Hulu, Prime, FreeWheel, DV360 — checked 2026-10-14), chosen so at least one rate falls inside every known publisher range. <strong>Custom rates are admin-only</strong>: in the preset catalog manager, typing a valid single number surfaces an explicit <strong>“Add custom rate…”</strong> entry (a range is rejected). Regular users pick from the ladder.</p>
+
+    <div class="mock" style="max-width:640px;">
+      <div class="mock-cap"><span class="lts"><i></i><i></i><i></i></span> Modal · Manage Transcode Presets (admin) → editing a preset</div>
+      <div class="mock-body">
+        <div class="mbar" style="margin-bottom:14px;">
+          <div class="finput grow"><span class="fl">Preset name</span><span>Hulu (Disney)</span></div>
+        </div>
+        <div class="mgrid">
+          <div class="finput"><span class="fl">Resolution</span><span>1920×1080 (1080p)</span><span class="car">▾</span></div>
+          <div class="finput"><span class="fl">Duration</span><span>Original</span><span class="car">▾</span></div>
+          <div class="finput foc" style="align-items:flex-start;"><span class="fl">Video Bitrate</span>
+            <span style="display:flex; flex-wrap:wrap; gap:6px;">
+              <span class="mtag" style="color:#fff; border-color:rgba(255,255,255,.35);">25 Mbps</span>
+              <span class="mtag" style="color:#fff; border-color:rgba(255,255,255,.35);">30 Mbps</span>
+              <span class="mtag">18 Mbps · Custom</span>
+            </span><span class="car">▾</span></div>
+          <div class="finput"><span class="fl">Frame Rate</span><span>29.97</span><span class="car">▾</span></div>
+        </div>
+        <p class="mcap-note">The focused <strong>Video Bitrate</strong> field (pink) is a <strong>multi-select</strong> — pick any number of single rates, each kept as a chip. Here three are selected; <span class="mtag" style="vertical-align:middle;">18 Mbps · Custom</span> was added via the <strong>“Add custom rate…”</strong> entry (admin-only).</p>
+
+        <div class="mgrid" style="margin-top:18px;">
+          <div>
+            <p class="fhelp" style="margin:0 0 7px; color:rgba(255,255,255,.5); font-family:var(--mono); text-transform:uppercase; letter-spacing:.06em;">Video Bitrate — single rates ▾</p>
+            <div class="mmenu">
+              <div class="mi">1 Mbps</div>
+              <div class="mi">2 Mbps</div>
+              <div class="mi">4 Mbps</div>
+              <div class="mi">6 Mbps</div>
+              <div class="mi">10 Mbps</div>
+              <div class="mi">15 Mbps</div>
+              <div class="mi">20 Mbps</div>
+              <div class="mi sel">✓ 25 Mbps</div>
+              <div class="mi sel">✓ 30 Mbps</div>
+              <div class="mi">40 Mbps</div>
+              <div class="mi">50 Mbps</div>
+              <div class="mi cust">Add custom rate…</div>
+            </div>
+          </div>
+          <div>
+            <p class="fhelp" style="margin:0 0 7px; color:rgba(255,255,255,.5); font-family:var(--mono); text-transform:uppercase; letter-spacing:.06em;">Duration ▾</p>
+            <div class="mmenu">
+              <div class="mi">15s</div>
+              <div class="mi">30s</div>
+              <div class="mi">45s</div>
+              <div class="mi">60s</div>
+              <div class="mi sel">Original</div>
+              <div class="mi cust">Custom…</div>
+            </div>
+            <p class="fhelp" style="margin-top:14px;">Each selected rate becomes <strong style="color:#fff;">its own rendition</strong> — no averaging. Regular users see this sheet <strong style="color:#fff;">read-only</strong>; only an admin edits it here, where custom rates are typed.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inv" style="margin-top:20px;">
+      <div class="invcard">
+        <h4>Duration</h4>
+        <ul>
+          <li><strong>15s · 30s · 45s · 60s · Original</strong>, plus Custom.</li>
+          <li><strong>Original</strong> keeps the source runtime intact — a 30.89s clip stays 30.89s.</li>
+          <li>A fixed value (e.g. 30s) trims to exactly that length.</li>
+        </ul>
+      </div>
+      <div class="invcard">
+        <h4>How Custom works (admin)</h4>
+        <ul>
+          <li>Only an <strong>admin editing a preset</strong> can type a custom rate — users pick from the ladder.</li>
+          <li>A typed rate is kept as a chip with a <strong>"Custom" badge</strong> and joins the preset's renditions.</li>
+          <li>Non-rate input is ignored; the ladder only accepts <strong>single fixed rates</strong> (e.g. 18 Mbps), never ranges.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Bitrate — grounded in specs</span>
+    <h2>Why a ladder of single rates</h2>
+    <p class="sec-intro">The platform needs <strong>fixed rates, not ranges</strong>. So instead of range options, the field offers a <strong>ladder of single rates</strong> picked so at least one lands inside every published spec band. A preset can select several at once. Full provenance lives in-repo at <span class="mono">docs/reference/video-encoding-bitrate-reference.md</span>.</p>
+    <p class="sec-intro" style="font-size:15px;">The ladder: <span class="mono">1 · 2 · 3 · 4 · 5 · 6 · 8 · 10 · 12 · 15 · 20 · 25 · 30 · 40 · 50 Mbps</span>. A few landmark rates and the specs they satisfy:</p>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>Rate</th><th>Satisfies</th></tr></thead>
+        <tbody>
+          <tr><td><span class="stname">2–5 Mbps</span></td><td class="desc">IAB 2026 OLV renditions (360p–720p); Adobe 720p/1080p; the Default 720p baseline.</td></tr>
+          <tr><td><span class="stname">6 Mbps</span></td><td class="desc">Roku self-serve minimum; The Trade Desk high 1080p (4–6.5); FAST-channel seeds.</td></tr>
+          <tr><td><span class="stname">8 Mbps</span></td><td class="desc">Amazon OLV recommended; Amazon Twitch / Fire TV minimum.</td></tr>
+          <tr><td><span class="stname">15 Mbps</span></td><td class="desc">Peacock mezzanine (≥15); TTD mezzanine (15–30); Prime Video minimum; IAB 4K low end.</td></tr>
+          <tr><td><span class="stname">20–30 Mbps</span></td><td class="desc">DV360 source (≥20); Peacock upload (≥25); Disney+/Hulu CBR (10–40); FreeWheel source.</td></tr>
+          <tr><td><span class="stname">40–50 Mbps</span></td><td class="desc">Disney+ upper (10–40); FreeWheel mezzanine upper; Prime Video recommended (50).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sec-intro" style="font-size:15px;"><strong>Seed presets</strong> carry published per-publisher rates where available: Disney+ / ESPN / ABC / Hulu 30 Mbps, Prime Video 50, Peacock / Netflix / Max / Paramount+ 25, Roku &amp; FAST channels 6, the Default 720p baseline 4.</p>
+    <div class="callout note">
+      <span class="eyebrow">Caveat</span>
+      <p>The IAB 2026 figures are from a <strong>public-comment draft</strong>, and the single rate chosen for each publisher is a representative value inside its published band, not a publisher-mandated number. Confirm against each target publisher's current spec before production.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Transcode Status</span>
+    <h2>The five states</h2>
+    <div class="chips">
+      <span class="chip"><span class="dot dot--ring d-green"></span>Default <span class="k">default</span></span>
+      <span class="chip"><span class="dot d-green"></span>Live <span class="k">live</span></span>
+      <span class="chip"><span class="dot d-amber"></span>Processing <span class="k">processing</span></span>
+      <span class="chip"><span class="dot d-red"></span>Error <span class="k">error</span></span>
+      <span class="chip"><span class="dot d-grey"></span>Inactive <span class="k">inactive</span></span>
+    </div>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>State</th><th>Means</th><th>Restart?</th></tr></thead>
+        <tbody>
+          <tr><td><span class="stname"><span class="dot dot--ring d-green"></span>Default</span></td><td class="desc">On the video baseline — no publisher preset applied. Serves fine, but distinct from Live (green <em>ring</em>) so an un-set item is visible.</td><td class="desc">—</td></tr>
+          <tr><td><span class="stname"><span class="dot d-green"></span>Live</span></td><td class="desc">Conformed to a chosen preset; ready to serve. Chip names the publisher.</td><td class="desc">—</td></tr>
+          <tr><td><span class="stname"><span class="dot d-amber"></span>Processing</span></td><td class="desc">Transcoding in flight (after Apply, a restart, or an admin preset update).</td><td class="desc">—</td></tr>
+          <tr><td><span class="stname"><span class="dot d-red"></span>Error</span></td><td class="desc">The transcode <strong>run</strong> failed. Retrying may fix it.</td><td class="desc"><strong style="color:var(--s-green)">Yes</strong> — retry</td></tr>
+          <tr><td><span class="stname"><span class="dot d-grey"></span>Inactive</span></td><td class="desc">Dormant / off.</td><td class="desc"><strong style="color:var(--s-green)">Yes</strong> — rebuild</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sec-intro"><strong>No "Out of Spec" state</strong> — presets can't be overridden, so nothing can diverge from a publisher spec. <strong>One chip per applied preset.</strong> Each tag shows a stack — e.g. <span class="mono">Live: Hulu (Disney)</span> above <span class="mono">Live: Netflix</span>. A config lands <strong>Default</strong> if it's the untouched baseline, else <strong>Live</strong>. <strong>Restart</strong> re-runs the whole plan; enabled only when a transcode is Inactive or Error, and confirms first.</p>
+
+    <div class="mock">
+      <div class="mock-cap"><span class="lts"><i></i><i></i><i></i></span> Distributions — the table</div>
+      <div class="mock-body">
+        <table class="dtbl">
+          <thead><tr><th>Name</th><th>Transcode Status</th><th>Platform Status</th><th>Distribution Tag</th><th class="ra">Actions</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="nm">RedBull_Q1</td>
+              <td><span class="chipcol">
+                <span class="schip"><span class="sdot g"></span>Live: Hulu (Disney)</span>
+                <span class="schip"><span class="sdot r"></span>Error: Netflix</span>
+              </span></td>
+              <td><span class="schip"><span class="sdot g"></span>Success: Nexxen</span></td>
+              <td><span class="turl">https://r.radius.io/vast/8f3a2c?…</span></td>
+              <td class="ra"><span class="acts">
+                <span class="ico" title="Copy tag URL"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></span>
+                <span class="ico" title="Restart — a transcode errored"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 13c0-1.65.67-3.15 1.76-4.24L6.34 7.34C4.9 8.79 4 10.79 4 13c0 4.08 3.05 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91zm14 0c0-4.42-3.58-8-8-8-.06 0-.12.01-.18.01l1.09-1.09L11.5 2.5 8 6l3.5 3.5 1.41-1.41-1.08-1.08c.06 0 .12-.01.17-.01 3.31 0 6 2.69 6 6 0 2.97-2.17 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93z"/></svg></span>
+                <span class="ico" title="Link to Nexxen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></span>
+                <span class="ico" title="More actions"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></span>
+              </span></td>
+            </tr>
+            <tr>
+              <td class="nm">RedBull_Q2</td>
+              <td><span class="chipcol">
+                <span class="schip"><span class="sdot ring gr"></span>Default</span>
+              </span></td>
+              <td><span class="schip"><span class="sdot ring gr"></span>Not pushed</span></td>
+              <td><span class="turl">https://r.radius.io/vast/1d90af?…</span></td>
+              <td class="ra"><span class="acts">
+                <span class="ico" title="Copy tag URL"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></span>
+                <span class="ico dis" title="Restart applies when a transcode is Inactive or Error"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 13c0-1.65.67-3.15 1.76-4.24L6.34 7.34C4.9 8.79 4 10.79 4 13c0 4.08 3.05 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91zm14 0c0-4.42-3.58-8-8-8-.06 0-.12.01-.18.01l1.09-1.09L11.5 2.5 8 6l3.5 3.5 1.41-1.41-1.08-1.08c.06 0 .12-.01.17-.01 3.31 0 6 2.69 6 6 0 2.97-2.17 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93z"/></svg></span>
+                <span class="ico dis" title="Not pushed — nothing to link"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 7h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.43-.98 2.63-2.31 2.98l1.46 1.46C20.88 15.61 22 13.95 22 12c0-2.76-2.24-5-5-5zm-1 4h-2.19l2 2H16v-2zM2 4.27l3.11 3.11C3.29 8.12 2 9.91 2 12c0 2.76 2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1 0-1.59 1.21-2.9 2.76-3.07L8.73 11H8v2h2.73L13 15.27V17h1.73l4.01 4.01 1.41-1.41L3.41 2.86 2 4.27z"/></svg></span>
+                <span class="ico" title="More actions"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></span>
+              </span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="mcap-note">Two presets applied → two stacked chips, each naming its publisher. <strong>RedBull_Q1</strong>'s Netflix transcode errored, so restart is enabled (retry); <strong>RedBull_Q2</strong> is on the plain green-ring <strong>Default</strong> baseline (restart disabled).</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Scoping the real build</span>
+    <h2>Prototype vs. production</h2>
+    <div class="split">
+      <div class="proto">
+        <h4>In the prototype</h4>
+        <ul>
+          <li>Preset bitrates trace to specs where published; other field values are illustrative.</li>
+          <li><span class="mono">Processing → landing</span> is a fixed timer, not a real transcode.</li>
+          <li>Option lists are a flat superset (any rate on any preset).</li>
+          <li>Updating a preset re-transcodes its distros across this line item (scope TBD for prod).</li>
+          <li>Catalog edits persist to localStorage.</li>
+        </ul>
+      </div>
+      <div class="prod">
+        <h4>For production</h4>
+        <ul>
+          <li>Load real publisher specs; likely constrain valid rates per publisher in the admin editor.</li>
+          <li>Apply (and an admin preset update) kicks a real re-transcode; status arrives from the pipeline (webhook / poll).</li>
+          <li>Confirm the real propagation scope of a preset update (whole account? this line item? immediate vs. queued).</li>
+          <li>Persist the admin preset catalog server-side with real auth.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">For engineers</span>
+    <h2>Implementation map</h2>
+    <p class="sec-intro">One <span class="mono">useReducer</span> in <span class="mono">AppContext.tsx</span>, persisted to localStorage; helpers off <span class="mono">useApp()</span>; pure logic in <span class="mono">src/lib/</span>.</p>
+    <div class="imap">
+      <div class="row">
+        <div class="lbl">Types · src/types.ts</div>
+        <div class="item"><span class="fn">DistroStatus</span> = "default" | "live" | "processing" | "error" | "inactive" (no <span class="mono">outOfSpec</span>)</div>
+        <div class="item"><span class="fn">Distro.transcodes</span>: DistroTranscode[] — one entry per applied preset.</div>
+        <div class="item"><span class="fn">AppState.transcoding</span> (the line-item plan) · <span class="fn">AppState.transcodePresets</span> (mutable admin catalog).</div>
+      </div>
+      <div class="row">
+        <div class="lbl">Domain logic (pure)</div>
+        <div class="item"><span class="fn">src/lib/transcodePresets.ts</span> — TRANSCODE_FIELDS (<span class="fn">bitrate</span> is a <span class="fn">multiselect</span> of single rates; <span class="fn">duration</span> is <span class="fn">select-custom</span>), SEED_TRANSCODE_PRESETS, <span class="fn">canonicalizeRates</span> (validate/sort the comma-joined single-rate list), <span class="fn">transcodeLandingStatus</span> (<span class="mono">default</span> | <span class="mono">live</span>), transcodePublisher.</div>
+        <div class="item"><span class="fn">src/lib/distroStatus.ts</span> — STATUS_META (five states), isRestartable, RESTART_SIMULATION_MS.</div>
+      </div>
+      <div class="row">
+        <div class="lbl">Components</div>
+        <div class="item"><span class="fn">TranscodeFieldsGrid.tsx</span> — the shared field sheet; a <span class="fn">readOnly</span> prop makes it non-editable (the user settings dialog). Editable, with the bitrate multi-select + custom entry, only in the admin preset manager.</div>
+        <div class="item"><span class="fn">TranscodingSettingsDialog.tsx</span> (read-only sheet) · <span class="fn">ManageTranscodePresetsDialog.tsx</span> (admin edit + custom) · <span class="fn">DistrosSection.tsx</span> (status column, restart, <span class="fn">handleUpdatePreset</span> re-transcode) · <span class="fn">StatusChip.tsx</span> (shared).</div>
+      </div>
+      <div class="row">
+        <div class="lbl">Reducer · AppContext.tsx</div>
+        <div class="item"><span class="fn">updateTranscodePreset</span> re-syncs every line-item config using that preset, so an admin edit propagates; <span class="fn">DistrosSection.handleUpdatePreset</span> drives the affected distros through Processing → their landing status.</div>
+      </div>
+      <div class="row">
+        <div class="lbl">Reference</div>
+        <div class="item"><span class="fn">docs/reference/video-encoding-bitrate-reference.md</span> — the source of truth behind the bitrate option list and per-publisher preset values.</div>
+      </div>
+      <div class="row swaps">
+        <div class="lbl">Backend swap points</div>
+        <div class="item">The <span class="fn">Processing → landing</span> timer → the real transcode pipeline (webhook / poll), for both Apply and admin preset updates.</div>
+        <div class="item">Preset catalog persistence → server-side with real auth.</div>
+        <div class="item">Preset-update <strong>propagation scope</strong> → confirm account-wide vs. line-item, and immediate vs. queued.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Try it</span>
+    <h2>Walkthrough</h2>
+    <div class="steps">
+      <div class="step"><h4>Add a distribution tag</h4><p>Distributions → <em>+ Add Distribution Tag</em>. It appears with one Transcode Status chip per applied preset.</p></div>
+      <div class="step"><h4>Apply multiple presets</h4><p><em>Transcoding Settings</em> → change the first row to <strong>Hulu</strong> → <strong>+ Add Preset</strong> → set it to <strong>Netflix</strong> → Apply. Every tag now shows two chips.</p></div>
+      <div class="step"><h4>See the read-only sheet</h4><p>Expand a preset row. As a regular user the fields are <strong>read-only</strong> — <strong>Video Bitrate</strong> shows the preset's selected single rates as chips; you select presets, not field values.</p></div>
+      <div class="step"><h4>Edit a preset as admin</h4><p>Flip the top-bar toggle to <strong>Admin</strong>, open the <strong>pencil</strong> beside the preset picker, and edit a preset. In <strong>Video Bitrate</strong> pick several single rates (each a rendition) or type a <strong>custom rate</strong>; <strong>Update</strong> re-transcodes every distro using that preset.</p></div>
+      <div class="step"><h4>Watch the re-transcode land</h4><p>After Apply or an admin Update, affected tags go <strong>Processing</strong> → then <strong>Live</strong> (or <strong>Default</strong> on the untouched baseline). A failed run shows <strong>Error</strong>, where the row's restart re-runs it.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    Radius Ad-Tags prototype · Transcoding hand-off · living document, as of 2026-10-23.<br>
+    Companion: the <strong>3rd-Party Push</strong> hand-off. Source of truth: <span class="mono">docs/handoff-transcoding.md</span> and <span class="mono">docs/reference/video-encoding-bitrate-reference.md</span> in the repo.
+  </footer>
+</div>

@@ -2,7 +2,6 @@ import {
   Autocomplete,
   Box,
   Button,
-  Chip,
   Collapse,
   Dialog,
   DialogActions,
@@ -25,12 +24,12 @@ import { ManageTranscodePresetsDialog } from "./ManageTranscodePresetsDialog";
 import { useConfirm } from "./ConfirmDialog";
 import { useApp } from "../state/AppContext";
 import { newId } from "../lib/ids";
-import type { TranscodeSettings, TranscodingConfig } from "../types";
-import {
-  DEFAULT_PRESET_ID,
-  findPreset,
-  settingsEqual,
-} from "../lib/transcodePresets";
+import type {
+  TranscodePreset,
+  TranscodeSettings,
+  TranscodingConfig,
+} from "../types";
+import { DEFAULT_PRESET_ID, findPreset } from "../lib/transcodePresets";
 
 interface Props {
   open: boolean;
@@ -38,6 +37,8 @@ interface Props {
   onApply: (configs: TranscodingConfig[]) => void;
   /** Surfaces admin preset-catalog changes to the top-level Snackbar. */
   onSaved?: (message: string) => void;
+  /** Admin updates a preset → re-transcodes all distros that use it. */
+  onUpdatePreset: (preset: TranscodePreset) => void;
 }
 
 /** A row in the modal — a config plus a stable key for React and expand state. */
@@ -49,17 +50,14 @@ interface Row {
 
 const rowsMatchConfigs = (rows: Row[], configs: TranscodingConfig[]): boolean =>
   rows.length === configs.length &&
-  rows.every(
-    (r, i) =>
-      r.presetId === configs[i].presetId &&
-      settingsEqual(r.settings, configs[i].settings),
-  );
+  rows.every((r, i) => r.presetId === configs[i].presetId);
 
 export const TranscodingSettingsDialog = ({
   open,
   onClose,
   onApply,
   onSaved,
+  onUpdatePreset,
 }: Props) => {
   const { state } = useApp();
   const { confirm, confirmDialog } = useConfirm();
@@ -113,15 +111,6 @@ export const TranscodingSettingsDialog = ({
     );
   };
 
-  const updateRowField = (key: string, fieldId: string, value: string) =>
-    setRows((prev) =>
-      prev.map((r) =>
-        r.key === key
-          ? { ...r, settings: { ...r.settings, [fieldId]: value } }
-          : r,
-      ),
-    );
-
   const addRow = () => {
     const preset = findPreset(presets, DEFAULT_PRESET_ID) ?? presets[0];
     const key = newId();
@@ -159,7 +148,14 @@ export const TranscodingSettingsDialog = ({
   );
 
   const handleApply = () => {
-    onApply(rows.map((r) => ({ presetId: r.presetId, settings: r.settings })));
+    // Settings always come from the current preset — there are no per-line-item
+    // overrides. (Fall back to the row's snapshot only if the preset was deleted.)
+    onApply(
+      rows.map((r) => ({
+        presetId: r.presetId,
+        settings: { ...(findPreset(presets, r.presetId)?.settings ?? r.settings) },
+      })),
+    );
     onClose();
   };
 
@@ -183,9 +179,9 @@ export const TranscodingSettingsDialog = ({
         <Stack spacing={2.5}>
           <Typography variant="body2" color="text.secondary">
             Apply one or more presets — every distribution tag is transcoded once
-            per preset. Each preset's settings are collapsed; expand a preset to
-            override any field (a one-off for this line-item; the preset is never
-            changed).
+            per preset. Expand a preset to view its settings (read-only). Preset
+            settings can't be overridden here; only an admin can change a preset,
+            via the pencil, which re-transcodes every distribution using it.
           </Typography>
 
           <Stack direction="row" alignItems="center" spacing={1}>
@@ -220,8 +216,6 @@ export const TranscodingSettingsDialog = ({
           <Stack spacing={2} divider={<Divider />}>
             {rows.map((row) => {
               const preset = findPreset(presets, row.presetId);
-              const modified =
-                !preset || !settingsEqual(row.settings, preset.settings);
               const isOpen = expanded.has(row.key);
               const isOnly = rows.length === 1;
               // On the Default baseline the picker reads as enabled-but-not-active:
@@ -261,17 +255,6 @@ export const TranscodingSettingsDialog = ({
                         />
                       )}
                     />
-                    {modified && (
-                      <Chip
-                        label="Modified"
-                        size="small"
-                        sx={{
-                          backgroundColor: "outOfSpec.main",
-                          color: "outOfSpec.contrastText",
-                          fontWeight: 600,
-                        }}
-                      />
-                    )}
                     {/* Row controls grouped together, expand next to delete. */}
                     <Stack direction="row" spacing={0.25}>
                       <Tooltip title={isOpen ? "Collapse" : "Expand settings"}>
@@ -308,10 +291,9 @@ export const TranscodingSettingsDialog = ({
                   <Collapse in={isOpen} unmountOnExit>
                     <Box sx={{ pt: 2 }}>
                       <TranscodeFieldsGrid
-                        settings={row.settings}
-                        onChange={(id, value) =>
-                          updateRowField(row.key, id, value)
-                        }
+                        settings={preset?.settings ?? row.settings}
+                        onChange={() => {}}
+                        readOnly
                       />
                     </Box>
                   </Collapse>
@@ -345,6 +327,7 @@ export const TranscodingSettingsDialog = ({
         open={managePresetsOpen}
         onClose={() => setManagePresetsOpen(false)}
         onSaved={onSaved}
+        onUpdatePreset={onUpdatePreset}
       />
       {confirmDialog}
     </Dialog>

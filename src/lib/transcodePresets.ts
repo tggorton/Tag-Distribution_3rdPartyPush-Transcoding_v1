@@ -20,7 +20,11 @@ export type { TranscodePreset } from "../types";
  * specs — enough to show a preset filling the sheet and a manual override.
  */
 
-export type TranscodeFieldType = "select" | "text" | "select-custom";
+export type TranscodeFieldType =
+  | "select"
+  | "text"
+  | "select-custom"
+  | "multiselect";
 export type TranscodeFieldGroup = "video" | "audio";
 
 export interface TranscodeField {
@@ -95,42 +99,31 @@ export const TRANSCODE_FIELDS: TranscodeField[] = [
   {
     id: "bitrate",
     label: "Video Bitrate",
-    type: "select-custom",
+    type: "multiselect",
     group: "video",
-    // Grounded in public specs (checked 2026-10-14), split into the two tiers the
-    // industry actually distinguishes: ready-to-serve *playback* renditions vs the
-    // *source / mezzanine* file submitted for transcoding.
-    //   Playback: IAB 2026 renditions (1.5–3 @360p · 2–4 @480/540p · 2–5 @720p ·
-    //     4–10 @1080p); The Trade Desk high 1080p (4–6.5); Amazon OLV recommended (8).
-    //   Source/mezzanine: Disney+/Hulu CBR (10–40); IAB & TTD mezzanine CBR / Prime
-    //     minimum (15–30); Disney/Hulu programmatic (15–60); DV360 & FreeWheel source
-    //     (20–40); IAB mezzanine VBR / Prime recommended (50).
-    // `options` is the flat union (validation + custom-detection); `optionGroups` is
-    // the grouped display. Custom covers anything publisher-specific not listed.
+    // SINGLE rates only — the platform transcodes one rendition per selected rate
+    // (no ranges, no averaging). The operator can select one or more. The ladder is
+    // chosen so at least one rate falls inside every known publisher / DSP spec
+    // range (IAB 2026, The Trade Desk, Disney/Hulu, Amazon & Prime, Peacock, Roku,
+    // FreeWheel, DV360), while also allowing a multi-rate rendition set.
     options: [
-      "1.5–3 Mbps",
-      "2–4 Mbps",
-      "2–5 Mbps",
-      "4–6.5 Mbps",
-      "4–10 Mbps",
+      "1 Mbps",
+      "2 Mbps",
+      "3 Mbps",
+      "4 Mbps",
+      "5 Mbps",
+      "6 Mbps",
       "8 Mbps",
-      "10–40 Mbps",
-      "15–30 Mbps",
-      "15–60 Mbps",
-      "20–40 Mbps",
+      "10 Mbps",
+      "12 Mbps",
+      "15 Mbps",
+      "20 Mbps",
+      "25 Mbps",
+      "30 Mbps",
+      "40 Mbps",
       "50 Mbps",
     ],
-    optionGroups: [
-      {
-        label: "Playback rendition",
-        options: ["1.5–3 Mbps", "2–4 Mbps", "2–5 Mbps", "4–6.5 Mbps", "4–10 Mbps", "8 Mbps"],
-      },
-      {
-        label: "Source / mezzanine",
-        options: ["10–40 Mbps", "15–30 Mbps", "15–60 Mbps", "20–40 Mbps", "50 Mbps"],
-      },
-    ],
-    helperText: "A rate or range, e.g. 8 Mbps or 12–25 Mbps",
+    helperText: "Pick one or more single rates, or type a custom rate (e.g. 18 Mbps).",
   },
   {
     id: "frameRate",
@@ -237,7 +230,7 @@ const HULU_SETTINGS: TranscodeSettings = {
   resolution: "1920×1080 (1080p)",
   aspectRatio: "16:9",
   duration: "Original",
-  bitrate: "15–60 Mbps",
+  bitrate: "30 Mbps",
   frameRate: "29.97",
   scanType: "Progressive",
   chroma: "4:2:0",
@@ -255,7 +248,7 @@ const DEFAULT_SETTINGS: TranscodeSettings = {
   ...HULU_SETTINGS,
   resolution: "1280×720 (720p)",
   duration: "Original",
-  bitrate: "2–5 Mbps",
+  bitrate: "4 Mbps",
   frameRate: "29.97",
   audioBitrate: "128 kbps",
   loudness: "-23 LKFS",
@@ -278,31 +271,31 @@ interface PresetSeed {
 }
 
 const PUBLISHER_SEEDS: PresetSeed[] = [
-  // Bitrates reflect published per-publisher specs where available (checked
-  // 2026-10-14): Disney+/Hulu CBR, Prime Video, Peacock, Roku, etc. Hulu's base is
-  // the Disney/Hulu programmatic 15–60 Mbps; pubs without a public figure fall to a
-  // sensible tier (premium CTV → 15–30; FAST/free → 4–6.5). Audio/codec unchanged.
-  { id: "hulu", name: "Hulu (Disney)" }, // 15–60 Mbps (Disney/Hulu programmatic) via base
+  // Each preset pre-selects a single representative rate inside that publisher's
+  // spec; the operator can add more (the backend transcodes one rendition per
+  // selected rate). Figures reflect published specs where available (2026-10-14):
+  // Disney+/Hulu, Prime Video, Peacock, Roku, etc. Audio/codec unchanged.
+  { id: "hulu", name: "Hulu (Disney)" }, // 30 Mbps (within Disney/Hulu programmatic 15–60) via base
   {
     id: "disney-plus",
     name: "Disney+ (Ads)",
-    overrides: { bitrate: "10–40 Mbps", audioBitrate: "≥256 kbps", audioChannels: "5.1" },
+    overrides: { bitrate: "30 Mbps", audioBitrate: "≥256 kbps", audioChannels: "5.1" },
   },
-  { id: "espn", name: "ESPN", overrides: { bitrate: "10–40 Mbps" } },
-  { id: "abc", name: "ABC", overrides: { bitrate: "10–40 Mbps" } },
-  { id: "peacock", name: "Peacock", overrides: { bitrate: "15–30 Mbps", audioBitrate: "≥256 kbps" } },
+  { id: "espn", name: "ESPN", overrides: { bitrate: "30 Mbps" } },
+  { id: "abc", name: "ABC", overrides: { bitrate: "30 Mbps" } },
+  { id: "peacock", name: "Peacock", overrides: { bitrate: "25 Mbps", audioBitrate: "≥256 kbps" } },
   {
     id: "paramount-plus",
     name: "Paramount+",
-    overrides: { bitrate: "15–30 Mbps", audioChannels: "5.1" },
+    overrides: { bitrate: "25 Mbps", audioChannels: "5.1" },
   },
-  { id: "pluto-tv", name: "Pluto TV", overrides: { bitrate: "4–6.5 Mbps", audioBitrate: "128 kbps" } },
+  { id: "pluto-tv", name: "Pluto TV", overrides: { bitrate: "6 Mbps", audioBitrate: "128 kbps" } },
   {
     id: "netflix",
     name: "Netflix (Ads)",
     overrides: {
       videoCodec: "H.265 (HEVC)",
-      bitrate: "15–30 Mbps",
+      bitrate: "25 Mbps",
       audioBitrate: "≥256 kbps",
       audioChannels: "5.1",
       loudness: "-27 LKFS",
@@ -313,20 +306,20 @@ const PUBLISHER_SEEDS: PresetSeed[] = [
     name: "Amazon Prime Video",
     overrides: { bitrate: "50 Mbps", audioBitrate: "≥256 kbps", audioChannels: "5.1" },
   },
-  { id: "freevee", name: "Freevee (legacy)", overrides: { bitrate: "4–6.5 Mbps" } },
-  { id: "roku-channel", name: "Roku Channel", overrides: { bitrate: "4–6.5 Mbps" } },
-  { id: "tubi", name: "Tubi", overrides: { bitrate: "4–6.5 Mbps" } },
-  { id: "max", name: "Max", overrides: { bitrate: "15–30 Mbps", audioChannels: "5.1" } },
-  { id: "discovery-plus", name: "Discovery+", overrides: { bitrate: "15–30 Mbps" } },
-  { id: "sling", name: "Sling TV", overrides: { bitrate: "15–30 Mbps" } },
-  { id: "fubo", name: "Fubo", overrides: { bitrate: "15–30 Mbps" } },
-  { id: "philo", name: "Philo", overrides: { bitrate: "4–6.5 Mbps" } },
-  { id: "crackle", name: "Crackle", overrides: { bitrate: "4–6.5 Mbps", audioBitrate: "128 kbps" } },
-  { id: "xumo", name: "Xumo Play", overrides: { bitrate: "4–6.5 Mbps" } },
-  { id: "plex", name: "Plex", overrides: { bitrate: "4–6.5 Mbps" } },
-  { id: "samsung-tv-plus", name: "Samsung TV Plus", overrides: { bitrate: "4–6.5 Mbps" } },
-  { id: "lg-channels", name: "LG Channels", overrides: { bitrate: "4–6.5 Mbps" } },
-  { id: "vizio-watchfree", name: "Vizio WatchFree+", overrides: { bitrate: "4–6.5 Mbps" } },
+  { id: "freevee", name: "Freevee (legacy)", overrides: { bitrate: "6 Mbps" } },
+  { id: "roku-channel", name: "Roku Channel", overrides: { bitrate: "6 Mbps" } },
+  { id: "tubi", name: "Tubi", overrides: { bitrate: "6 Mbps" } },
+  { id: "max", name: "Max", overrides: { bitrate: "25 Mbps", audioChannels: "5.1" } },
+  { id: "discovery-plus", name: "Discovery+", overrides: { bitrate: "25 Mbps" } },
+  { id: "sling", name: "Sling TV", overrides: { bitrate: "25 Mbps" } },
+  { id: "fubo", name: "Fubo", overrides: { bitrate: "25 Mbps" } },
+  { id: "philo", name: "Philo", overrides: { bitrate: "6 Mbps" } },
+  { id: "crackle", name: "Crackle", overrides: { bitrate: "6 Mbps", audioBitrate: "128 kbps" } },
+  { id: "xumo", name: "Xumo Play", overrides: { bitrate: "6 Mbps" } },
+  { id: "plex", name: "Plex", overrides: { bitrate: "6 Mbps" } },
+  { id: "samsung-tv-plus", name: "Samsung TV Plus", overrides: { bitrate: "6 Mbps" } },
+  { id: "lg-channels", name: "LG Channels", overrides: { bitrate: "6 Mbps" } },
+  { id: "vizio-watchfree", name: "Vizio WatchFree+", overrides: { bitrate: "6 Mbps" } },
 ];
 
 /**
@@ -375,9 +368,9 @@ export const settingsEqual = (
 ): boolean => TRANSCODE_FIELDS.every((f) => a[f.id] === b[f.id]);
 
 /**
- * True when the effective settings have been hand-edited away from the preset
- * they were derived from — i.e. a one-off override. This is what makes distros
- * land `outOfSpec` rather than `live` after a re-transcode.
+ * True when a config's snapshot settings differ from its preset — e.g. a preset
+ * that was deleted. Presets are no longer overridden per line-item (and an admin
+ * preset update re-syncs every config), so this is normally false.
  */
 export const isCustomTranscoding = (
   config: TranscodingConfig,
@@ -390,17 +383,14 @@ export const isCustomTranscoding = (
 
 /**
  * The distro status a re-transcode lands on for a given config:
- *   - hand-edited away from its preset  → `outOfSpec` (orange)
- *   - the Default baseline, untouched   → `default`   (green, not officially set)
- *   - any other clean platform preset   → `live`      (green, conformed)
+ *   - the Default baseline → `default` (green, not officially set)
+ *   - any other preset     → `live`    (green, conformed)
+ * Presets can't be overridden, so a config never lands out of spec.
  */
 export const transcodeLandingStatus = (
   config: TranscodingConfig,
-  presets: TranscodePreset[],
-): DistroStatus => {
-  if (isCustomTranscoding(config, presets)) return "outOfSpec";
-  return config.presetId === DEFAULT_PRESET_ID ? "default" : "live";
-};
+): DistroStatus =>
+  config.presetId === DEFAULT_PRESET_ID ? "default" : "live";
 
 /**
  * The publisher a transcode names, for the status chip suffix ("Live: Hulu
@@ -444,6 +434,33 @@ export const describeTranscodings = (
  * was renamed — "Rec.709 / YUV" → "Rec.709") back to the baseline, so a stale
  * value can't render as a blank dropdown.
  */
+/** Parse a bitrate string to Mbps for ordering: "18 Mbps" → 18, "750 kbps" → 0.75. */
+export const rateToMbps = (s: string): number => {
+  const n = parseFloat(s);
+  if (Number.isNaN(n)) return Number.POSITIVE_INFINITY;
+  return /kbps/i.test(s) ? n / 1000 : n;
+};
+
+/** A single bitrate like "8 Mbps" or "750 kbps" — not a range or other text. */
+export const isSingleRate = (s: string): boolean =>
+  /^\s*\d+(?:\.\d+)?\s*(?:kbps|mbps)\s*$/i.test(s);
+
+/**
+ * Canonicalize a comma-joined bitrate list for the multiselect field: a bare
+ * number becomes Mbps, only single rates are kept (standard *or* custom — any
+ * range from before single-rate mode is dropped), deduped and ordered ascending.
+ */
+export const canonicalizeRates = (raw: string): string[] =>
+  [
+    ...new Set(
+      raw
+        .split(",")
+        .map((s) => s.trim())
+        .map((s) => (/^\d+(?:\.\d+)?$/.test(s) ? `${s} Mbps` : s))
+        .filter(isSingleRate),
+    ),
+  ].sort((a, b) => rateToMbps(a) - rateToMbps(b));
+
 /**
  * Collapse legacy duration formats onto the current option set so an old stored
  * value doesn't render as a near-duplicate "custom" entry — ":30" / "30" → "30s".
@@ -460,6 +477,14 @@ const normalizeSettings = (
   const settings: TranscodeSettings = {};
   for (const f of TRANSCODE_FIELDS) {
     const stored = raw?.[f.id];
+    if (f.type === "multiselect") {
+      // A comma-joined list of single rates (standard or custom). Keep single-rate
+      // values, drop any stale range from before single-rate mode, dedupe + order.
+      // Fall back to the baseline if nothing valid remains.
+      const picked = canonicalizeRates(stored ?? "");
+      settings[f.id] = picked.length ? picked.join(", ") : DEFAULT_SETTINGS[f.id];
+      continue;
+    }
     const invalidSelect =
       f.type === "select" && (stored === undefined || !f.options?.includes(stored));
     let resolved =
